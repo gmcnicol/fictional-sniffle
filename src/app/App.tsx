@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   BrowserRouter,
   Routes,
@@ -10,6 +10,7 @@ import { Button } from '../components';
 import { FeedListPage } from '../features/feeds/FeedListPage';
 import { ReaderPage } from '../features/reader/ReaderPage';
 import { useTheme, type Theme } from '../theme/theme';
+import { LiveRegionContext } from '../hooks/useLiveRegion.ts';
 
 function App() {
   const { theme, setTheme } = useTheme();
@@ -30,6 +31,7 @@ function Layout({
 }) {
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
+  const [liveMessage, setLiveMessage] = useState('');
 
   useEffect(() => {
     mainRef.current?.focus();
@@ -41,10 +43,13 @@ function Layout({
   };
 
   return (
-    <>
+    <LiveRegionContext.Provider value={setLiveMessage}>
       <a href="#main-content" className="skip-link" onClick={handleSkip}>
         Skip to main content
       </a>
+      <div aria-live="polite" className="sr-only">
+        {liveMessage}
+      </div>
       <header aria-label="Site header">
         <nav aria-label="Primary navigation">
           <Link to="/">Feeds</Link>
@@ -67,7 +72,7 @@ function Layout({
       <footer aria-label="Site footer">
         <p>RSS Web Comics Reader</p>
       </footer>
-    </>
+    </LiveRegionContext.Provider>
   );
 }
 
