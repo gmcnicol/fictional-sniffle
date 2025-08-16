@@ -1,8 +1,12 @@
-import { useEffect, useRef, type ButtonHTMLAttributes } from 'react';
-import { motion, useAnimationControls } from 'framer-motion';
+import { useEffect, useRef } from 'react';
+import {
+  motion,
+  useAnimationControls,
+  type HTMLMotionProps,
+} from 'framer-motion';
 import './IconButton.css';
 
-interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface IconButtonProps extends Omit<HTMLMotionProps<'button'>, 'ref'> {
   pulse?: number;
 }
 
