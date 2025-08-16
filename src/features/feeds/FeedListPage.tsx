@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Button, ListItem, Panel } from '../../components';
 import { db } from '../../lib/db';
 import type { Feed } from '../../lib/db';
@@ -108,6 +109,13 @@ export function FeedListPage() {
     URL.revokeObjectURL(url);
   };
 
+  const MotionListItem = motion(ListItem);
+  const reduceMotion = useReducedMotion();
+  const itemVariants = {
+    hidden: { opacity: 0, y: -8 },
+    visible: { opacity: 1, y: 0 },
+  };
+
   return (
     <Panel>
       <h1>Feeds</h1>
@@ -117,18 +125,27 @@ export function FeedListPage() {
             <h2>{folderList.find((f) => f.id === folderId)?.name}</h2>
           )}
           <ul>
-            {fs.map((f) => (
-              <ListItem key={f.id}>
-                {f.latestArticleId ? (
-                  <Link to={`/reader/${f.latestArticleId}`}>{f.title}</Link>
-                ) : (
-                  f.title
-                )}{' '}
-                <span>({f.unread})</span>
-                <Button onClick={() => handleEdit(f)}>Edit</Button>
-                <Button onClick={() => handleDelete(f)}>Delete</Button>
-              </ListItem>
-            ))}
+            <AnimatePresence initial={false}>
+              {fs.map((f) => (
+                <MotionListItem
+                  key={f.id}
+                  variants={itemVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  transition={{ duration: reduceMotion ? 0 : 0.15 }}
+                >
+                  {f.latestArticleId ? (
+                    <Link to={`/reader/${f.latestArticleId}`}>{f.title}</Link>
+                  ) : (
+                    f.title
+                  )}{' '}
+                  <span>({f.unread})</span>
+                  <Button onClick={() => handleEdit(f)}>Edit</Button>
+                  <Button onClick={() => handleDelete(f)}>Delete</Button>
+                </MotionListItem>
+              ))}
+            </AnimatePresence>
           </ul>
         </div>
       ))}

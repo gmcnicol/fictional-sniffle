@@ -1,5 +1,6 @@
 import { useState, type SyntheticEvent } from 'react';
 import { useParams } from 'react-router-dom';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Button, Panel } from '../../components';
 import { db } from '../../lib/db';
 import { sanitize } from '../../lib/sanitize';
@@ -21,6 +22,8 @@ export function ReaderPage() {
 
   const panZoom = usePanZoom();
   const [caption, setCaption] = useState('');
+  const [expanded, setExpanded] = useState(true);
+  const reduceMotion = useReducedMotion();
 
   if (!data?.article || !data.feed) {
     return <Panel>Article not found</Panel>;
@@ -82,12 +85,26 @@ export function ReaderPage() {
           {caption && <figcaption className="caption">{caption}</figcaption>}
         </figure>
       )}
-      {sanitizedHtml && (
-        <div
-          className="reader-content"
-          dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-        />
-      )}
+      <AnimatePresence initial={false}>
+        {expanded && sanitizedHtml && (
+          <motion.div
+            key="article-content"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.2 }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div
+              className="reader-content"
+              dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <Button onClick={() => setExpanded((e) => !e)}>
+        {expanded ? 'Collapse' : 'Expand'} Article
+      </Button>
       <Button onClick={handleOpenOriginal}>Open Original</Button>
       <Button onClick={handleMarkUnread}>Mark Unread</Button>
     </Panel>
