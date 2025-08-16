@@ -12,7 +12,11 @@ self.onmessage = async (event: MessageEvent<string>) => {
     const article = reader.parse();
 
     if (article?.content) {
-      const DOMPurify = createDOMPurify(window as unknown as Window);
+      // linkedom's window lacks some globals expected by DOMPurify's WindowLike type,
+      // so cast to include the global constructors DomPurify checks for
+      const DOMPurify = createDOMPurify(
+        window as unknown as Window & typeof globalThis,
+      );
       const clean = DOMPurify.sanitize(article.content);
       self.postMessage({ html: clean });
     } else {
