@@ -2,6 +2,7 @@ import { useState, type SyntheticEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button, Panel } from '../../components';
 import { db } from '../../lib/db';
+import { sanitize } from '../../lib/sanitize';
 import { useDexieLiveQuery } from '../../hooks/useDexieLiveQuery';
 import { usePanZoom } from '../../hooks/usePanZoom';
 import './ReaderPage.css';
@@ -50,6 +51,10 @@ export function ReaderPage() {
     setCaption(text);
   };
 
+  const sanitizedHtml = article.contentHtml
+    ? sanitize(article.contentHtml)
+    : null;
+
   return (
     <Panel>
       <h1>{article.title}</h1>
@@ -76,6 +81,12 @@ export function ReaderPage() {
           />
           {caption && <figcaption className="caption">{caption}</figcaption>}
         </figure>
+      )}
+      {sanitizedHtml && (
+        <div
+          className="reader-content"
+          dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+        />
       )}
       <Button onClick={handleOpenOriginal}>Open Original</Button>
       <Button onClick={handleMarkUnread}>Mark Unread</Button>
