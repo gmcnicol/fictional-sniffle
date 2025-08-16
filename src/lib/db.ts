@@ -5,6 +5,9 @@ export interface Feed {
   url: string;
   title: string;
   folderId?: number | null;
+  etag?: string | null;
+  lastModified?: string | null;
+  lastFetchedAt?: Date | null;
 }
 
 export interface Article {
@@ -35,6 +38,7 @@ export interface SyncLog {
   feedId: number;
   status: string;
   runAt: Date;
+  message?: string;
 }
 
 class AppDB extends Dexie {
