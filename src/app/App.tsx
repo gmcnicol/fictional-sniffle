@@ -9,7 +9,7 @@ import {
 import { Button } from '../components';
 import { FeedListPage } from '../features/feeds/FeedListPage';
 import { ReaderPage } from '../features/reader/ReaderPage';
-import { useTheme } from '../theme/theme';
+import { useTheme, type Theme } from '../theme/theme';
 
 function App() {
   const { theme, setTheme } = useTheme();
@@ -25,8 +25,8 @@ function Layout({
   theme,
   setTheme,
 }: {
-  theme: string;
-  setTheme: (t: string) => void;
+  theme: Theme;
+  setTheme: (t: Theme) => void;
 }) {
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
