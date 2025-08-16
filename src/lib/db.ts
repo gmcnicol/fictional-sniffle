@@ -16,6 +16,8 @@ export interface Article {
   title: string;
   link: string;
   publishedAt: Date;
+  mainImageUrl?: string | null;
+  mainImageAlt?: string | null;
 }
 
 export interface ReadState {
