@@ -15,7 +15,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       }
     };
     const load = async () => {
-      const stored = await db.settings.get('theme');
+      const stored = await db.preferences.get('theme');
       if (stored) {
         userPref.current = true;
         setThemeState(stored.value as Theme);
@@ -31,7 +31,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     if (userPref.current) {
-      db.settings.put({ key: 'theme', value: theme });
+      db.preferences.put({ key: 'theme', value: theme });
     }
   }, [theme]);
 

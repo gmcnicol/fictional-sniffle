@@ -1,57 +1,22 @@
-import { useEffect, useState } from 'react';
 import { Panel } from '../../components';
-import { settingsRepo } from '../../lib/repositories';
 import { useTheme, type Theme } from '../../theme/theme';
+import { useSettings } from './SettingsContext.tsx';
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const [autoThreshold, setAutoThreshold] = useState('60');
-  const [syncMinutes, setSyncMinutes] = useState('30');
-  const [proxyUrl, setProxyUrl] = useState('');
-  const [imageZoom, setImageZoom] = useState('1');
-
-  useEffect(() => {
-    const load = async () => {
-      const [t, s, p, z] = await Promise.all([
-        settingsRepo.get('autoMarkReadThreshold'),
-        settingsRepo.get('syncEveryMinutes'),
-        settingsRepo.get('proxyUrl'),
-        settingsRepo.get('imageZoom'),
-      ]);
-      if (t) setAutoThreshold(t.value);
-      if (s) setSyncMinutes(s.value);
-      if (p) setProxyUrl(p.value);
-      if (z) setImageZoom(z.value);
-    };
-    load();
-  }, []);
+  const {
+    autoMarkReadThreshold: autoThreshold,
+    setAutoMarkReadThreshold: setAutoThreshold,
+    syncEveryMinutes: syncMinutes,
+    setSyncEveryMinutes: setSyncMinutes,
+    proxyUrl,
+    setProxyUrl,
+    imageZoom,
+    setImageZoom,
+  } = useSettings();
 
   const handleThemeChange = (value: Theme) => {
     setTheme(value);
-  };
-
-  const handleThresholdChange = async (value: string) => {
-    setAutoThreshold(value);
-    await settingsRepo.set('autoMarkReadThreshold', value);
-  };
-
-  const handleSyncChange = async (value: string) => {
-    setSyncMinutes(value);
-    await settingsRepo.set('syncEveryMinutes', value);
-  };
-
-  const handleProxyChange = async (value: string) => {
-    setProxyUrl(value);
-    if (value) {
-      await settingsRepo.set('proxyUrl', value);
-    } else {
-      await settingsRepo.remove('proxyUrl');
-    }
-  };
-
-  const handleImageZoomChange = async (value: string) => {
-    setImageZoom(value);
-    await settingsRepo.set('imageZoom', value);
   };
 
   return (
@@ -75,7 +40,7 @@ export function SettingsPage() {
           <input
             type="number"
             value={autoThreshold}
-            onChange={(e) => handleThresholdChange(e.target.value)}
+            onChange={(e) => setAutoThreshold(e.target.value)}
           />
         </label>
       </div>
@@ -85,7 +50,7 @@ export function SettingsPage() {
           <input
             type="number"
             value={syncMinutes}
-            onChange={(e) => handleSyncChange(e.target.value)}
+            onChange={(e) => setSyncMinutes(e.target.value)}
           />
         </label>
       </div>
@@ -95,7 +60,7 @@ export function SettingsPage() {
           <input
             type="url"
             value={proxyUrl}
-            onChange={(e) => handleProxyChange(e.target.value)}
+            onChange={(e) => setProxyUrl(e.target.value)}
           />
         </label>
       </div>
@@ -106,7 +71,7 @@ export function SettingsPage() {
             type="number"
             step="0.1"
             value={imageZoom}
-            onChange={(e) => handleImageZoomChange(e.target.value)}
+            onChange={(e) => setImageZoom(e.target.value)}
           />
         </label>
       </div>

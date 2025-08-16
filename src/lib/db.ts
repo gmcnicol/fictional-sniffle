@@ -31,6 +31,11 @@ export interface Setting {
   value: string;
 }
 
+export interface Preference {
+  key: string;
+  value: string;
+}
+
 export interface Folder {
   id?: number;
   name: string;
@@ -49,6 +54,7 @@ class AppDB extends Dexie {
   articles!: Table<Article, number>;
   readState!: Table<ReadState, number>;
   settings!: Table<Setting, string>;
+  preferences!: Table<Preference, string>;
   folders!: Table<Folder, number>;
   syncLog!: Table<SyncLog, number>;
 
@@ -64,6 +70,15 @@ class AppDB extends Dexie {
       readState: 'articleId',
       folders: '++id, name',
       syncLog: '++id, feedId, runAt',
+    });
+    this.version(3).stores({
+      settings: '&key',
+      feeds: '++id, url, folderId',
+      articles: '++id, feedId, publishedAt',
+      readState: 'articleId',
+      folders: '++id, name',
+      syncLog: '++id, feedId, runAt',
+      preferences: '&key',
     });
   }
 }
