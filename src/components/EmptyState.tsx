@@ -1,4 +1,4 @@
-import { HTMLAttributes } from 'react';
+import type { HTMLAttributes } from 'react';
 import './EmptyState.css';
 
 interface Props extends HTMLAttributes<HTMLDivElement> {

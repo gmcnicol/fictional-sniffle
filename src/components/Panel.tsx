@@ -1,4 +1,4 @@
-import { HTMLAttributes } from 'react';
+import type { HTMLAttributes } from 'react';
 import './Panel.css';
 
 export function Panel({ children, ...props }: HTMLAttributes<HTMLDivElement>) {
