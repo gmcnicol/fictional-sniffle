@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button, ListItem, Panel } from '../../components';
 import { db } from '../../lib/db';
 import type { Feed } from '../../lib/db';
@@ -9,7 +10,7 @@ import { useDexieLiveQuery } from '../../hooks/useDexieLiveQuery';
 export function FeedListPage() {
   const feedsWithUnread = useDexieLiveQuery(async () => {
     const feeds = await db.feeds.toArray();
-    const result: (Feed & { unread: number })[] = [];
+    const result: (Feed & { unread: number; latestArticleId?: number })[] = [];
     for (const f of feeds) {
       const articleIds = await db.articles
         .where('feedId')
@@ -21,7 +22,12 @@ export function FeedListPage() {
         .and((r) => r.read)
         .count();
       const unread = articleIds.length - readCount;
-      result.push({ ...f, unread });
+      const articles = await db.articles
+        .where('feedId')
+        .equals(f.id!)
+        .sortBy('publishedAt');
+      const latest = articles.at(-1);
+      result.push({ ...f, unread, latestArticleId: latest?.id });
     }
     return result;
   }, []);
@@ -30,7 +36,10 @@ export function FeedListPage() {
   const feeds = feedsWithUnread ?? [];
   const folderList = folders ?? [];
 
-  const grouped = new Map<number | null, (Feed & { unread: number })[]>();
+  const grouped = new Map<
+    number | null,
+    (Feed & { unread: number; latestArticleId?: number })[]
+  >();
   feeds.forEach((f) => {
     const key = f.folderId ?? null;
     if (!grouped.has(key)) grouped.set(key, []);
@@ -110,7 +119,12 @@ export function FeedListPage() {
           <ul>
             {fs.map((f) => (
               <ListItem key={f.id}>
-                {f.title} ({f.unread})
+                {f.latestArticleId ? (
+                  <Link to={`/reader/${f.latestArticleId}`}>{f.title}</Link>
+                ) : (
+                  f.title
+                )}{' '}
+                <span>({f.unread})</span>
                 <Button onClick={() => handleEdit(f)}>Edit</Button>
                 <Button onClick={() => handleDelete(f)}>Delete</Button>
               </ListItem>

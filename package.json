@@ -18,10 +18,11 @@
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
     "dexie": "^4.0.11",
+    "fast-xml-parser": "^4.4.2",
     "framer-motion": "^12.23.12",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "fast-xml-parser": "^4.4.2"
+    "react-router-dom": "^6.30.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
