@@ -41,3 +41,18 @@ button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  padding: var(--spacing-sm) var(--spacing-md);
+  z-index: 1000;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 0;
+}
