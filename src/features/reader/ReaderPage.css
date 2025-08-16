@@ -15,3 +15,9 @@
   cursor: grab;
   transition: transform 0.2s ease-out;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-image-container img {
+    transition: none;
+  }
+}

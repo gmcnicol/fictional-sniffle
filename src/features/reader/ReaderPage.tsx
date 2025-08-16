@@ -85,13 +85,13 @@ export function ReaderPage() {
           {caption && <figcaption className="caption">{caption}</figcaption>}
         </figure>
       )}
-      <AnimatePresence initial={false}>
+      <AnimatePresence initial={!reduceMotion}>
         {expanded && sanitizedHtml && (
           <motion.div
             key="article-content"
-            initial={{ height: 0, opacity: 0 }}
+            initial={reduceMotion ? false : { height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.2 }}
             style={{ overflow: 'hidden' }}
           >

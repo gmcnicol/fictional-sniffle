@@ -118,10 +118,9 @@ export function FeedListPage() {
 
   const MotionListItem = motion(ListItem);
   const reduceMotion = useReducedMotion();
-  const itemVariants = {
-    hidden: { opacity: 0, y: -8 },
-    visible: { opacity: 1, y: 0 },
-  };
+  const itemVariants = reduceMotion
+    ? { hidden: { opacity: 0 }, visible: { opacity: 1 } }
+    : { hidden: { opacity: 0, y: -8 }, visible: { opacity: 1, y: 0 } };
 
   return (
     <Panel>
@@ -147,14 +146,14 @@ export function FeedListPage() {
             <h2>{folderList.find((f) => f.id === folderId)?.name}</h2>
           )}
           <ul>
-            <AnimatePresence initial={false}>
+            <AnimatePresence initial={!reduceMotion}>
               {fs.map((f) => (
                 <MotionListItem
                   key={f.id}
                   variants={itemVariants}
-                  initial="hidden"
+                  initial={reduceMotion ? false : 'hidden'}
                   animate="visible"
-                  exit="hidden"
+                  exit={reduceMotion ? undefined : 'hidden'}
                   transition={{ duration: reduceMotion ? 0 : 0.15 }}
                 >
                   {f.latestArticleId ? (
