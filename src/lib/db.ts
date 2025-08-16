@@ -14,6 +14,7 @@ export interface Article {
   id?: number;
   feedId: number;
   title: string;
+  titleLower: string;
   link: string;
   publishedAt: Date;
   mainImageUrl?: string | null;
@@ -80,6 +81,24 @@ class AppDB extends Dexie {
       syncLog: '++id, feedId, runAt',
       preferences: '&key',
     });
+    this.version(4)
+      .stores({
+        settings: '&key',
+        feeds: '++id, url, folderId',
+        articles: '++id, feedId, publishedAt, titleLower',
+        readState: 'articleId',
+        folders: '++id, name',
+        syncLog: '++id, feedId, runAt',
+        preferences: '&key',
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table('articles')
+          .toCollection()
+          .modify((a: Article) => {
+            a.titleLower = a.title.toLowerCase();
+          });
+      });
   }
 }
 
