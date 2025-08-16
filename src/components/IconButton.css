@@ -1,0 +1,16 @@
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.icon-btn:hover {
+  background: var(--color-muted);
+  color: var(--color-bg);
+}
