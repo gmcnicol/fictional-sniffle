@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Button, IconButton, ListItem, Panel } from '../../components';
@@ -8,6 +8,8 @@ import { discoverFeed } from '../../lib/discoverFeed';
 import { importOpml, exportOpml } from '../../lib/opml';
 import { useDexieLiveQuery } from '../../hooks/useDexieLiveQuery';
 import { syncFeedsOnce } from '../../lib/sync';
+import { searchArticles } from '../../lib/queries';
+import { registerShortcuts } from '../../lib/shortcuts';
 
 export function FeedListPage() {
   const feedsWithUnread = useDexieLiveQuery(async () => {
@@ -37,6 +39,37 @@ export function FeedListPage() {
   const folders = useDexieLiveQuery(() => db.folders.toArray(), []);
   const feeds = feedsWithUnread ?? [];
   const folderList = folders ?? [];
+
+  const [query, setQuery] = useState('');
+  const [feedFilter, setFeedFilter] = useState<number | 'all'>('all');
+  const [folderFilter, setFolderFilter] = useState<number | 'all'>('all');
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [hasImage, setHasImage] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const unregister = registerShortcuts({
+      nextArticle: () => {},
+      prevArticle: () => {},
+      toggleRead: () => {},
+      openOriginal: () => {},
+      focusSearch: () => searchRef.current?.focus(),
+      gotoFeedList: () => {},
+    });
+    return unregister;
+  }, []);
+
+  const articles = useDexieLiveQuery(
+    () =>
+      searchArticles({
+        keyword: query,
+        feedId: feedFilter === 'all' ? undefined : feedFilter,
+        folderId: folderFilter === 'all' ? undefined : folderFilter,
+        unreadOnly,
+        hasImage,
+      }),
+    [query, feedFilter, folderFilter, unreadOnly, hasImage],
+  );
 
   const grouped = new Map<
     number | null,
@@ -124,6 +157,70 @@ export function FeedListPage() {
 
   return (
     <Panel>
+      <div style={{ marginBottom: '1rem' }}>
+        <input
+          type="search"
+          ref={searchRef}
+          placeholder="Search articles"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <select
+          value={feedFilter === 'all' ? '' : feedFilter}
+          onChange={(e) =>
+            setFeedFilter(
+              e.target.value === '' ? 'all' : Number(e.target.value),
+            )
+          }
+        >
+          <option value="">All feeds</option>
+          {feeds.map((f) => (
+            <option key={f.id} value={f.id!}>
+              {f.title}
+            </option>
+          ))}
+        </select>
+        <select
+          value={folderFilter === 'all' ? '' : folderFilter}
+          onChange={(e) =>
+            setFolderFilter(
+              e.target.value === '' ? 'all' : Number(e.target.value),
+            )
+          }
+        >
+          <option value="">All folders</option>
+          {folderList.map((f) => (
+            <option key={f.id} value={f.id!}>
+              {f.name}
+            </option>
+          ))}
+        </select>
+        <label>
+          <input
+            type="checkbox"
+            checked={unreadOnly}
+            onChange={(e) => setUnreadOnly(e.target.checked)}
+          />
+          Unread only
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={hasImage}
+            onChange={(e) => setHasImage(e.target.checked)}
+          />
+          Has image
+        </label>
+      </div>
+      {articles && (
+        <ul>
+          {articles.map((a) => (
+            <li key={a.id}>
+              <Link to={`/reader/${a.id}`}>{a.title}</Link>
+            </li>
+          ))}
+        </ul>
+      )}
       <div
         style={{
           display: 'flex',

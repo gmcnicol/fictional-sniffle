@@ -1,8 +1,11 @@
 import { db, type Article } from '../db.ts';
 
 export const articlesRepo = {
-  async add(article: Omit<Article, 'id'>) {
-    return db.articles.add(article);
+  async add(article: Omit<Article, 'id' | 'titleLower'>) {
+    return db.articles.add({
+      ...article,
+      titleLower: article.title.toLowerCase(),
+    });
   },
   async get(id: number) {
     return db.articles.get(id);
