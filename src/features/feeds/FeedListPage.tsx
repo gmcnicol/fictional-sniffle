@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, ListItem, Panel } from '../../components';
-import { db, Feed } from '../../lib/db';
+import { db } from '../../lib/db';
+import type { Feed } from '../../lib/db';
 import { discoverFeed } from '../../lib/discoverFeed';
 import { importOpml, exportOpml } from '../../lib/opml';
 import { useDexieLiveQuery } from '../../hooks/useDexieLiveQuery';

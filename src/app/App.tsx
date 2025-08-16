@@ -1,6 +1,6 @@
 import { Button } from '../components';
 import { FeedListPage } from '../features/feeds/FeedListPage';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../theme/theme';
 
 function App() {
   const { theme, setTheme } = useTheme();

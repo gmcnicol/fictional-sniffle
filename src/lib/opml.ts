@@ -1,4 +1,5 @@
-import { db, Feed, Folder } from './db';
+import { db } from './db';
+import type { Feed, Folder } from './db';
 import { normalizeUrl } from './normalizeUrl';
 
 export interface ParsedFeed {
