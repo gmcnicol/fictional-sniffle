@@ -8,6 +8,7 @@ import { registerShortcuts } from '../../lib/shortcuts.ts';
 import { sanitize } from '../../lib/sanitize';
 import { useDexieLiveQuery } from '../../hooks/useDexieLiveQuery';
 import { usePanZoom } from '../../hooks/usePanZoom';
+import { useLiveRegion } from '../../hooks/useLiveRegion.ts';
 import './ReaderPage.css';
 import '../../styles/caption.css';
 
@@ -27,6 +28,7 @@ export function ReaderPage() {
   const [caption, setCaption] = useState('');
   const [expanded, setExpanded] = useState(true);
   const reduceMotion = useReducedMotion();
+  const announce = useLiveRegion();
 
   const handleOpenOriginal = () => {
     if (!data?.article) return;
@@ -39,8 +41,10 @@ export function ReaderPage() {
     const isRead = await readStateRepo.isRead(article.id!);
     if (isRead) {
       await readStateRepo.markUnread(article.id!);
+      announce('Marked as unread');
     } else {
       await readStateRepo.markRead(article.id!);
+      announce('Marked as read');
     }
   };
 
