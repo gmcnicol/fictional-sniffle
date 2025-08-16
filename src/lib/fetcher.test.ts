@@ -21,4 +21,15 @@ describe('extractMainImage', () => {
       </head><body>No images</body></html>`;
     expect(extractMainImage(html, base)).toBe('https://example.com/meta.jpg');
   });
+
+  it('uses domain-specific selectors before heuristics', () => {
+    const html = `
+      <html><body>
+        <img src="large.jpg" width="800" height="600" />
+        <div id="comic"><img src="/comic.png" /></div>
+      </body></html>`;
+    expect(extractMainImage(html, 'https://xkcd.com/1/')).toBe(
+      'https://xkcd.com/comic.png',
+    );
+  });
 });

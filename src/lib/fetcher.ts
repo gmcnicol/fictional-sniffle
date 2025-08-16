@@ -1,3 +1,5 @@
+import domainRulesData from './domainRules.json' assert { type: 'json' };
+
 export interface FetchFeedOptions {
   etag?: string | null;
   lastModified?: string | null;
@@ -74,6 +76,21 @@ export async function fetchFeed(
  */
 export function extractMainImage(html: string, baseUrl: string): string | null {
   const doc = new DOMParser().parseFromString(html, 'text/html');
+
+  const hostname = new URL(baseUrl).hostname;
+  const domainRules = domainRulesData as Record<string, { image: string }>;
+  const rule = domainRules[hostname];
+  if (rule?.image) {
+    const img = doc.querySelector<HTMLImageElement>(rule.image);
+    const src = img?.getAttribute('src') || img?.getAttribute('data-src');
+    if (src) {
+      try {
+        return new URL(src, baseUrl).href;
+      } catch {
+        return src;
+      }
+    }
+  }
 
   let bestSrc: string | null = null;
   let bestArea = 0;
