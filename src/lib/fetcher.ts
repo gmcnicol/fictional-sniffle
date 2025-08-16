@@ -67,3 +67,48 @@ export async function fetchFeed(
   }
   throw lastError instanceof Error ? lastError : new Error('Failed to fetch');
 }
+
+/**
+ * Extract the largest image from an HTML document. Falls back to the
+ * page's `og:image` meta tag when no <img> elements are found.
+ */
+export function extractMainImage(html: string, baseUrl: string): string | null {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+
+  let bestSrc: string | null = null;
+  let bestArea = 0;
+
+  for (const img of Array.from(doc.querySelectorAll('img'))) {
+    let src = img.getAttribute('src') || img.getAttribute('data-src');
+    if (!src) continue;
+    try {
+      src = new URL(src, baseUrl).href;
+    } catch {
+      continue;
+    }
+
+    const width = parseInt(img.getAttribute('width') ?? '0', 10);
+    const height = parseInt(img.getAttribute('height') ?? '0', 10);
+    const area = width && height ? width * height : 0;
+
+    if (area > bestArea || (!bestSrc && area === bestArea)) {
+      bestSrc = src;
+      bestArea = area;
+    }
+  }
+
+  if (bestSrc) return bestSrc;
+
+  const ogImage = doc
+    .querySelector('meta[property="og:image"]')
+    ?.getAttribute('content');
+  if (ogImage) {
+    try {
+      return new URL(ogImage, baseUrl).href;
+    } catch {
+      return ogImage;
+    }
+  }
+
+  return null;
+}
