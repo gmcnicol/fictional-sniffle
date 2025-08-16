@@ -1,8 +1,10 @@
-import { useState, type SyntheticEvent } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useState, type SyntheticEvent } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Button, Panel } from '../../components';
 import { db } from '../../lib/db';
+import { readStateRepo } from '../../lib/repositories/readState.ts';
+import { registerShortcuts } from '../../lib/shortcuts.ts';
 import { sanitize } from '../../lib/sanitize';
 import { useDexieLiveQuery } from '../../hooks/useDexieLiveQuery';
 import { usePanZoom } from '../../hooks/usePanZoom';
@@ -11,6 +13,7 @@ import '../../styles/caption.css';
 
 export function ReaderPage() {
   const { articleId } = useParams();
+  const navigate = useNavigate();
   const data = useDexieLiveQuery(async () => {
     if (!articleId) return null;
     const id = Number(articleId);
@@ -24,6 +27,56 @@ export function ReaderPage() {
   const [caption, setCaption] = useState('');
   const [expanded, setExpanded] = useState(true);
   const reduceMotion = useReducedMotion();
+
+  const handleOpenOriginal = () => {
+    if (!data?.article) return;
+    window.open(data.article.link, '_blank');
+  };
+
+  const handleToggleRead = async () => {
+    if (!data?.article) return;
+    const { article } = data;
+    const isRead = await readStateRepo.isRead(article.id!);
+    if (isRead) {
+      await readStateRepo.markUnread(article.id!);
+    } else {
+      await readStateRepo.markRead(article.id!);
+    }
+  };
+
+  useEffect(() => {
+    if (!data?.article) return;
+    const { article } = data;
+    const unregister = registerShortcuts({
+      nextArticle: async () => {
+        const articles = await db.articles
+          .where('feedId')
+          .equals(article.feedId)
+          .sortBy('publishedAt');
+        const idx = articles.findIndex((a) => a.id === article.id);
+        const next = articles[idx + 1];
+        if (next) navigate(`/reader/${next.id}`);
+      },
+      prevArticle: async () => {
+        const articles = await db.articles
+          .where('feedId')
+          .equals(article.feedId)
+          .sortBy('publishedAt');
+        const idx = articles.findIndex((a) => a.id === article.id);
+        const prev = articles[idx - 1];
+        if (prev) navigate(`/reader/${prev.id}`);
+      },
+      toggleRead: handleToggleRead,
+      openOriginal: handleOpenOriginal,
+      focusSearch: () => {
+        document
+          .querySelector<HTMLInputElement>('input[type="search"]')
+          ?.focus();
+      },
+      gotoFeedList: () => navigate('/'),
+    });
+    return unregister;
+  }, [data, handleToggleRead, handleOpenOriginal, navigate]);
 
   if (!data?.article || !data.feed) {
     return <Panel>Article not found</Panel>;
@@ -39,14 +92,6 @@ export function ReaderPage() {
     handlePointerMove,
     handlePointerUp,
   } = panZoom;
-
-  const handleOpenOriginal = () => {
-    window.open(article.link, '_blank');
-  };
-
-  const handleMarkUnread = async () => {
-    await db.readState.put({ articleId: article.id!, read: false });
-  };
 
   const handleImageLoad = (e: SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
@@ -106,7 +151,7 @@ export function ReaderPage() {
         {expanded ? 'Collapse' : 'Expand'} Article
       </Button>
       <Button onClick={handleOpenOriginal}>Open Original</Button>
-      <Button onClick={handleMarkUnread}>Mark Unread</Button>
+      <Button onClick={handleToggleRead}>Toggle Read</Button>
     </Panel>
   );
 }
