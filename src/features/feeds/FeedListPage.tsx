@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Button, ListItem, Panel } from '../../components';
+import { Button, IconButton, ListItem, Panel } from '../../components';
 import { db } from '../../lib/db';
 import type { Feed } from '../../lib/db';
 import { discoverFeed } from '../../lib/discoverFeed';
 import { importOpml, exportOpml } from '../../lib/opml';
 import { useDexieLiveQuery } from '../../hooks/useDexieLiveQuery';
+import { syncFeedsOnce } from '../../lib/sync';
 
 export function FeedListPage() {
   const feedsWithUnread = useDexieLiveQuery(async () => {
@@ -90,6 +91,7 @@ export function FeedListPage() {
   };
 
   const [fileKey, setFileKey] = useState(0);
+  const [refreshPulse, setRefreshPulse] = useState(0);
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -109,6 +111,11 @@ export function FeedListPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleRefreshAll = async () => {
+    await syncFeedsOnce();
+    setRefreshPulse((p) => p + 1);
+  };
+
   const MotionListItem = motion(ListItem);
   const reduceMotion = useReducedMotion();
   const itemVariants = {
@@ -118,7 +125,22 @@ export function FeedListPage() {
 
   return (
     <Panel>
-      <h1>Feeds</h1>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <h1>Feeds</h1>
+        <IconButton
+          aria-label="Refresh feeds"
+          onClick={handleRefreshAll}
+          pulse={refreshPulse}
+        >
+          🔄
+        </IconButton>
+      </div>
       {Array.from(grouped.entries()).map(([folderId, fs]) => (
         <div key={folderId ?? 'root'}>
           {folderId && (
