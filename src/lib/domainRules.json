@@ -1,0 +1,4 @@
+{
+  "xkcd.com": { "image": "#comic img" },
+  "www.smbc-comics.com": { "image": "#cc-comic" }
+}
