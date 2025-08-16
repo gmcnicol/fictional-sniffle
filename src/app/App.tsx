@@ -9,6 +9,7 @@ import {
 import { Button } from '../components';
 import { FeedListPage } from '../features/feeds/FeedListPage';
 import { ReaderPage } from '../features/reader/ReaderPage';
+import { SettingsPage } from '../features/settings/SettingsPage';
 import { useTheme, type Theme } from '../theme/theme';
 import { LiveRegionContext } from '../hooks/useLiveRegion.ts';
 
@@ -52,7 +53,7 @@ function Layout({
       </div>
       <header aria-label="Site header">
         <nav aria-label="Primary navigation">
-          <Link to="/">Feeds</Link>
+          <Link to="/">Feeds</Link> <Link to="/settings">Settings</Link>
         </nav>
         <Button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
           Switch to {theme === 'light' ? 'dark' : 'light'} mode
@@ -67,6 +68,7 @@ function Layout({
         <Routes>
           <Route path="/" element={<FeedListPage />} />
           <Route path="/reader/:articleId" element={<ReaderPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>
       <footer aria-label="Site footer">
