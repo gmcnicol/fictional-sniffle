@@ -2,16 +2,18 @@ import { useState } from 'react';
 import { Button } from '../../components';
 import { db } from '../../lib/db';
 import { discoverFeed } from '../../lib/discoverFeed';
+import { useSettings } from '../settings/SettingsContext.tsx';
 
 export function AddFeedForm() {
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
   const [folder, setFolder] = useState('');
+  const { proxyUrl } = useSettings();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url) return;
-    const feedUrl = await discoverFeed(url);
+    const feedUrl = await discoverFeed(url, proxyUrl);
     let folderId: number | null = null;
     if (folder) {
       const existing = await db.folders.where('name').equals(folder).first();

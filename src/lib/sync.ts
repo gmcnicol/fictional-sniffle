@@ -1,4 +1,4 @@
-import { fetchFeed } from './fetcher.ts';
+import { fetchFeed, DEFAULT_PROXY } from './fetcher.ts';
 import { parseFeed } from './feedParser.ts';
 import {
   articlesRepo,
@@ -11,7 +11,7 @@ let timer: ReturnType<typeof setInterval> | null = null;
 
 export async function syncFeedsOnce() {
   const proxySetting = await settingsRepo.get('proxyUrl');
-  const proxy = proxySetting?.value ?? null;
+  const proxy = proxySetting?.value || DEFAULT_PROXY;
   const feeds = await feedsRepo.all();
   for (const feed of feeds) {
     try {

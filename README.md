@@ -19,6 +19,11 @@ npm run dev
 - `npm run format` – format with Prettier
 - `npm run size` – check bundle size against budget
 
+### CORS proxy
+
+Feeds that block cross-origin requests are fetched through a default proxy
+(`https://cors.isomorphic-git.org/`). You can override this URL in Settings.
+
 ## Folder Structure
 
 ```
