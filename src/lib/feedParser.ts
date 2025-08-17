@@ -61,5 +61,24 @@ export function parseFeed(xml: string): ParsedItem[] {
     }
   }
 
+  if (json['rdf:RDF']) {
+    const rdfItems = Array.isArray(json['rdf:RDF'].item)
+      ? json['rdf:RDF'].item
+      : json['rdf:RDF'].item
+        ? [json['rdf:RDF'].item]
+        : [];
+    for (const item of rdfItems) {
+      const image = item.enclosure?.type?.startsWith('image')
+        ? item.enclosure.url
+        : item['media:content']?.url;
+      items.push({
+        title: item.title ?? '',
+        link: item.link ?? '',
+        publishedAt: item['dc:date'] ? new Date(item['dc:date']) : new Date(),
+        image,
+      });
+    }
+  }
+
   return items;
 }

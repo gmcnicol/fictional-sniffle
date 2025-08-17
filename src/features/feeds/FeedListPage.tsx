@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Button, IconButton, ListItem, Panel } from '../../components';
+import { AddFeedForm } from './AddFeedForm';
 import { db } from '../../lib/db';
 import type { Feed } from '../../lib/db';
-import { discoverFeed } from '../../lib/discoverFeed';
 import { importOpml, exportOpml } from '../../lib/opml';
 import { useDexieLiveQuery } from '../../hooks/useDexieLiveQuery';
 import { syncFeedsOnce } from '../../lib/sync';
@@ -41,7 +41,13 @@ export function FeedListPage() {
   const folderList = folders ?? [];
 
   const [query, setQuery] = useState('');
-  const [feedFilter, setFeedFilter] = useState<number | 'all'>('all');
+  const { feedId: feedIdParam } = useParams();
+  const [feedFilter, setFeedFilter] = useState<number | 'all'>(
+    feedIdParam ? Number(feedIdParam) : 'all',
+  );
+  useEffect(() => {
+    setFeedFilter(feedIdParam ? Number(feedIdParam) : 'all');
+  }, [feedIdParam]);
   const [folderFilter, setFolderFilter] = useState<number | 'all'>('all');
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [hasImage, setHasImage] = useState(false);
@@ -80,24 +86,6 @@ export function FeedListPage() {
     if (!grouped.has(key)) grouped.set(key, []);
     grouped.get(key)!.push(f);
   });
-
-  const handleAdd = async () => {
-    const url = window.prompt('Feed URL');
-    if (!url) return;
-    const feedUrl = await discoverFeed(url);
-    const title = window.prompt('Title', feedUrl) || feedUrl;
-    const folderName = window.prompt('Folder (optional)') || undefined;
-    let folderId: number | null = null;
-    if (folderName) {
-      const folder = await db.folders.where('name').equals(folderName).first();
-      if (!folder) {
-        folderId = await db.folders.add({ name: folderName });
-      } else if (folder.id != null) {
-        folderId = folder.id;
-      }
-    }
-    await db.feeds.add({ url: feedUrl, title, folderId });
-  };
 
   const handleEdit = async (feed: Feed) => {
     const title = window.prompt('New title', feed.title);
@@ -157,6 +145,7 @@ export function FeedListPage() {
 
   return (
     <Panel>
+      <AddFeedForm />
       <div style={{ marginBottom: '1rem' }}>
         <input
           type="search"
@@ -268,7 +257,6 @@ export function FeedListPage() {
         </div>
       ))}
       <div style={{ marginTop: '1rem' }}>
-        <Button onClick={handleAdd}>Add Feed</Button>
         <Button onClick={handleExport}>Export OPML</Button>
         <input
           key={fileKey}
