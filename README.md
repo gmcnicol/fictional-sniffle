@@ -2,6 +2,8 @@
 
 A Vite-powered React + TypeScript single-page app. The project is preconfigured with ESLint, Prettier, and strict TypeScript settings. Core libraries like Dexie for IndexedDB, Framer Motion for animations, and Mozilla Readability are included.
 
+See [AGENTS.md](./AGENTS.md) for high-level architecture and the [tasks](./tasks) directory for the project roadmap.
+
 ## Development
 
 ```bash

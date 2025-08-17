@@ -7,6 +7,7 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { Button } from '../components';
+import { HelpModal } from '../features/help/HelpModal.tsx';
 const FeedListPage = lazy(() =>
   import('../features/feeds/FeedListPage').then((m) => ({
     default: m.FeedListPage,
@@ -45,6 +46,7 @@ function Layout({
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   const [liveMessage, setLiveMessage] = useState('');
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     mainRef.current?.focus();
@@ -67,9 +69,14 @@ function Layout({
         <nav aria-label="Primary navigation">
           <Link to="/">Feeds</Link> <Link to="/settings">Settings</Link>
         </nav>
-        <Button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
-          Switch to {theme === 'light' ? 'dark' : 'light'} mode
-        </Button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <Button
+            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          >
+            Switch to {theme === 'light' ? 'dark' : 'light'} mode
+          </Button>
+          <Button onClick={() => setShowHelp(true)}>Help</Button>
+        </div>
       </header>
       <main
         id="main-content"
@@ -88,6 +95,7 @@ function Layout({
       <footer aria-label="Site footer">
         <p>RSS Web Comics Reader</p>
       </footer>
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </LiveRegionContext.Provider>
   );
 }
