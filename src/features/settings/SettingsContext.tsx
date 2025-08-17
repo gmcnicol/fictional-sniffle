@@ -1,6 +1,7 @@
 /* eslint react-refresh/only-export-components: off */
 import { createContext, useContext, type ReactNode } from 'react';
 import { usePreference } from '../../hooks/usePreference.ts';
+import { DEFAULT_PROXY } from '../../lib/fetcher.ts';
 
 interface SettingsContextValue {
   autoMarkReadThreshold: string;
@@ -18,7 +19,7 @@ const SettingsContext = createContext<SettingsContextValue>({
   setAutoMarkReadThreshold: async () => {},
   syncEveryMinutes: '30',
   setSyncEveryMinutes: async () => {},
-  proxyUrl: '',
+  proxyUrl: DEFAULT_PROXY,
   setProxyUrl: async () => {},
   imageZoom: '1',
   setImageZoom: async () => {},
@@ -33,7 +34,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     'syncEveryMinutes',
     '30',
   );
-  const [proxyUrl, setProxyUrl] = usePreference('proxyUrl', '');
+  const [proxyUrl, setProxyUrl] = usePreference('proxyUrl', DEFAULT_PROXY);
   const [imageZoom, setImageZoom] = usePreference('imageZoom', '1');
 
   return (

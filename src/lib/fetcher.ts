@@ -1,5 +1,13 @@
 import domainRulesData from './domainRules.json' assert { type: 'json' };
 
+export const DEFAULT_PROXY = 'https://cors.isomorphic-git.org';
+
+export function buildProxyUrl(proxy: string, url: string) {
+  return proxy.includes('?')
+    ? `${proxy}${encodeURIComponent(url)}`
+    : `${proxy}${url}`;
+}
+
 export interface FetchFeedOptions {
   etag?: string | null;
   lastModified?: string | null;
@@ -19,7 +27,12 @@ function delay(ms: number) {
  */
 export async function fetchFeed(
   url: string,
-  { etag, lastModified, proxy, retries = 3 }: FetchFeedOptions = {},
+  {
+    etag,
+    lastModified,
+    proxy = DEFAULT_PROXY,
+    retries = 3,
+  }: FetchFeedOptions = {},
 ): Promise<{
   status: number;
   etag?: string;
@@ -47,8 +60,7 @@ export async function fetchFeed(
   let lastError: unknown;
 
   while (attempt < retries) {
-    const target =
-      useProxy && proxy ? `${proxy}?url=${encodeURIComponent(url)}` : url;
+    const target = useProxy && proxy ? buildProxyUrl(proxy, url) : url;
     try {
       const res = await fetch(target, { headers });
       // Retry on server errors
