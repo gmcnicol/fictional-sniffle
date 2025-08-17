@@ -20,10 +20,12 @@ export function registerShortcuts(actions: ShortcutActions) {
     }
     switch (e.key) {
       case 'j':
+      case 'ArrowRight':
         e.preventDefault();
         actions.nextArticle();
         break;
       case 'k':
+      case 'ArrowLeft':
         e.preventDefault();
         actions.prevArticle();
         break;
