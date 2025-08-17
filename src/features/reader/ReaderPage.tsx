@@ -127,6 +127,8 @@ export function ReaderPage() {
             src={article.mainImageUrl}
             alt={article.mainImageAlt ?? ''}
             onLoad={handleImageLoad}
+            loading="lazy"
+            decoding="async"
             style={{
               transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
             }}

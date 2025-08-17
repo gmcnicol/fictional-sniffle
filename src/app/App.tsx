@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import {
   BrowserRouter,
   Routes,
@@ -7,9 +7,21 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { Button } from '../components';
-import { FeedListPage } from '../features/feeds/FeedListPage';
-import { ReaderPage } from '../features/reader/ReaderPage';
-import { SettingsPage } from '../features/settings/SettingsPage';
+const FeedListPage = lazy(() =>
+  import('../features/feeds/FeedListPage').then((m) => ({
+    default: m.FeedListPage,
+  })),
+);
+const ReaderPage = lazy(() =>
+  import('../features/reader/ReaderPage').then((m) => ({
+    default: m.ReaderPage,
+  })),
+);
+const SettingsPage = lazy(() =>
+  import('../features/settings/SettingsPage').then((m) => ({
+    default: m.SettingsPage,
+  })),
+);
 import { useTheme, type Theme } from '../theme/theme';
 import { LiveRegionContext } from '../hooks/useLiveRegion.ts';
 
@@ -65,11 +77,13 @@ function Layout({
         tabIndex={-1}
         ref={mainRef}
       >
-        <Routes>
-          <Route path="/" element={<FeedListPage />} />
-          <Route path="/reader/:articleId" element={<ReaderPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Routes>
+        <Suspense fallback={<p>Loading...</p>}>
+          <Routes>
+            <Route path="/" element={<FeedListPage />} />
+            <Route path="/reader/:articleId" element={<ReaderPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Routes>
+        </Suspense>
       </main>
       <footer aria-label="Site footer">
         <p>RSS Web Comics Reader</p>
