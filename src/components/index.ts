@@ -2,5 +2,8 @@ export * from './Button';
 export * from './IconButton';
 export * from './ListItem';
 export * from './Panel';
+export * from './Toolbar';
 export * from './EmptyState';
 export * from './Spinner';
+export * from './UndoToast';
+export * from './layout';

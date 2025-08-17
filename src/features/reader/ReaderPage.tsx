@@ -1,16 +1,15 @@
-import { useCallback, useEffect, useState, type SyntheticEvent } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Button, Panel } from '../../components';
+import { Panel, UndoToast } from '../../components';
 import { db } from '../../lib/db';
-import { readStateRepo } from '../../lib/repositories/readState.ts';
 import { registerShortcuts } from '../../lib/shortcuts.ts';
-import { sanitize } from '../../lib/sanitize';
 import { useDexieLiveQuery } from '../../hooks/useDexieLiveQuery';
 import { usePanZoom } from '../../hooks/usePanZoom';
-import { useLiveRegion } from '../../hooks/useLiveRegion.ts';
+import { useReadState } from '../../hooks/useReadState';
+import { useAutoMarkAsRead } from '../../hooks/useAutoMarkAsRead';
+import { useScrollPosition } from '../../hooks/useScrollPosition';
+import { Reader } from './Reader';
 import './ReaderPage.css';
-import '../../styles/caption.css';
 
 export function ReaderPage() {
   const { articleId } = useParams();
@@ -34,11 +33,27 @@ export function ReaderPage() {
     handlePointerMove,
     handlePointerUp,
   } = panZoom;
-  const [caption, setCaption] = useState('');
-  const [expanded, setExpanded] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const reduceMotion = useReducedMotion();
-  const announce = useLiveRegion();
+
+  // Read state management with undo functionality
+  const readState = useReadState({
+    articleId: Number(articleId) || 0,
+    initialReadState: false,
+  });
+
+  // Auto mark-as-read functionality
+  const autoMarkAsRead = useAutoMarkAsRead({
+    articleId: Number(articleId) || 0,
+    isRead: readState.isRead,
+    threshold: 0.6,
+    delay: 1500,
+    enabled: true,
+  });
+
+  // Scroll position management
+  useScrollPosition({
+    articleId: Number(articleId) || 0,
+    enabled: true,
+  });
 
   const handleOpenOriginal = useCallback(() => {
     if (!data?.article) return;
@@ -46,33 +61,8 @@ export function ReaderPage() {
   }, [data]);
 
   const handleToggleRead = useCallback(async () => {
-    if (!data?.article) return;
-    const { article } = data;
-    const isRead = await readStateRepo.isRead(article.id!);
-    if (isRead) {
-      await readStateRepo.markUnread(article.id!);
-      announce('Marked as unread');
-    } else {
-      await readStateRepo.markRead(article.id!);
-      announce('Marked as read');
-    }
-  }, [data, announce]);
-
-  const handleToggleFullscreen = () => {
-    if (!isFullscreen) {
-      containerRef.current?.requestFullscreen();
-    } else {
-      document.exitFullscreen();
-    }
-  };
-
-  useEffect(() => {
-    const onChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', onChange);
-    return () => document.removeEventListener('fullscreenchange', onChange);
-  }, []);
+    await readState.toggleReadState();
+  }, [readState]);
 
   useEffect(() => {
     if (!data?.article) return;
@@ -96,7 +86,14 @@ export function ReaderPage() {
         const prev = articles[idx - 1];
         if (prev) navigate(`/reader/${prev.id}`);
       },
-      toggleRead: handleToggleRead,
+      toggleRead: () => {
+        // If there's a pending undo, execute it; otherwise toggle read state
+        if (readState.pendingUndo) {
+          readState.handleUndo();
+        } else {
+          handleToggleRead();
+        }
+      },
       openOriginal: handleOpenOriginal,
       focusSearch: () => {
         document
@@ -106,7 +103,7 @@ export function ReaderPage() {
       gotoFeedList: () => navigate('/'),
     });
     return unregister;
-  }, [data, handleToggleRead, handleOpenOriginal, navigate]);
+  }, [data, handleToggleRead, handleOpenOriginal, navigate, readState]);
 
   useEffect(() => {
     if (!data?.article) return;
@@ -130,74 +127,35 @@ export function ReaderPage() {
 
   const { article, feed } = data;
 
-  const handleImageLoad = (e: SyntheticEvent<HTMLImageElement>) => {
-    const img = e.currentTarget;
-    const text = img.getAttribute('alt') || img.getAttribute('title') || '';
-    setCaption(text);
-  };
-
-  const sanitizedHtml = article.contentHtml
-    ? sanitize(article.contentHtml)
-    : null;
-
   return (
-    <Panel>
-      {!isFullscreen && (
-        <>
-          <h1>{article.title}</h1>
-          <p>
-            {feed.title} – {article.publishedAt.toLocaleDateString()}
-          </p>
-        </>
+    <>
+      <div ref={autoMarkAsRead.setElement}>
+        <Reader
+          article={article}
+          feed={feed}
+          onOpenOriginal={handleOpenOriginal}
+          onToggleRead={handleToggleRead}
+          containerRef={containerRef}
+          panZoomHandlers={{
+            onWheel: handleWheel,
+            onPointerDown: handlePointerDown,
+            onPointerMove: handlePointerMove,
+            onPointerUp: handlePointerUp,
+          }}
+          scale={scale}
+          offset={offset}
+        />
+      </div>
+
+      {/* Undo toast */}
+      {readState.pendingUndo && (
+        <UndoToast
+          message={readState.pendingUndo.description}
+          onUndo={readState.handleUndo}
+          onDismiss={readState.clearPendingUndo}
+          visible={!!readState.pendingUndo}
+        />
       )}
-      {article.mainImageUrl && (
-        <figure
-          className="reader-image-container"
-          ref={containerRef}
-          onWheel={handleWheel}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerUp}
-        >
-          <img
-            src={article.mainImageUrl}
-            alt={article.mainImageAlt ?? ''}
-            onLoad={handleImageLoad}
-            loading="lazy"
-            decoding="async"
-            style={{
-              transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
-            }}
-          />
-          {caption && <figcaption className="caption">{caption}</figcaption>}
-        </figure>
-      )}
-      <AnimatePresence initial={!reduceMotion}>
-        {expanded && sanitizedHtml && (
-          <motion.div
-            key="article-content"
-            initial={reduceMotion ? false : { height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
-            transition={{ duration: reduceMotion ? 0 : 0.2 }}
-            style={{ overflow: 'hidden' }}
-          >
-            <div
-              className="reader-content"
-              dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <Button onClick={() => setExpanded((e) => !e)}>
-        {expanded ? 'Collapse' : 'Expand'} Article
-      </Button>
-      <Button onClick={handleOpenOriginal}>Open Original</Button>
-      <Button onClick={handleToggleRead}>Toggle Read</Button>
-      <Button onClick={handleToggleFullscreen}>
-        {isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
-      </Button>
-    </Panel>
+    </>
   );
 }

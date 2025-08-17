@@ -37,6 +37,7 @@ export async function syncFeedsOnce() {
             title: item.title,
             link: item.link,
             publishedAt: item.publishedAt,
+            mainImageUrl: item.image || null,
           });
         }
       }

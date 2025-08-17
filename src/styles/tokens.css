@@ -1,41 +1,76 @@
 :root {
-  --font-family-base: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  --line-height: 1.5;
+  /* Typography */
+  --font-family-base: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --line-height-tight: 1.25;
+  --line-height-base: 1.5;
+  --line-height-relaxed: 1.625;
+  --letter-spacing-tight: -0.025em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.025em;
 
-  /* Responsive typography */
-  --text-sm: clamp(0.875rem, 0.8rem + 0.2vw, 0.95rem);
-  --text-base: clamp(1rem, 0.9rem + 0.5vw, 1.2rem);
-  --text-lg: clamp(1.25rem, 1rem + 0.8vw, 1.5rem);
+  /* Spacing scale: 2,4,8,12,16,24,32 */
+  --spacing-1: 0.125rem; /* 2px */
+  --spacing-2: 0.25rem; /* 4px */
+  --spacing-4: 0.5rem; /* 8px */
+  --spacing-6: 0.75rem; /* 12px */
+  --spacing-8: 1rem; /* 16px */
+  --spacing-12: 1.5rem; /* 24px */
+  --spacing-16: 2rem; /* 32px */
 
-  /* Spacing scale */
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-
-  /* Radii */
+  /* Radii: 4, 8, 12 */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
 
-  /* Colors */
-  --color-primary: #0061a6;
-  --color-primary-contrast: #ffffff;
+  /* Shadows: subtle only */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
+/* Default theme follows prefers-color-scheme */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #ffffff;
+    --bg-elev: #f8f9fa;
+    --fg: #212529;
+    --muted: #6c757d;
+    --accent: #0d6efd;
+    --border: #dee2e6;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #212529;
+    --bg-elev: #343a40;
+    --fg: #f8f9fa;
+    --muted: #adb5bd;
+    --accent: #0d6efd;
+    --border: #495057;
+  }
+}
+
+/* Light theme override */
 :root[data-theme='light'] {
-  --color-bg: #ffffff;
-  --color-surface: #f2f2f2;
-  --color-text: #1a1a1a;
-  --color-muted: #555555;
-  --color-link: #0061a6;
+  --bg: #ffffff;
+  --bg-elev: #f8f9fa;
+  --fg: #212529;
+  --muted: #6c757d;
+  --accent: #0d6efd;
+  --border: #dee2e6;
 }
 
+/* Dark theme override */
 :root[data-theme='dark'] {
-  --color-bg: #1a1a1a;
-  --color-surface: #2a2a2a;
-  --color-text: #f2f2f2;
-  --color-muted: #aaaaaa;
-  --color-link: #66b0ff;
+  --bg: #212529;
+  --bg-elev: #343a40;
+  --fg: #f8f9fa;
+  --muted: #adb5bd;
+  --accent: #0d6efd;
+  --border: #495057;
 }

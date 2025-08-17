@@ -1,0 +1,65 @@
+.reader-viewport {
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.reader-viewport--center {
+  /* Modern approach with CSS Grid */
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+}
+
+/* Fallback for older browsers */
+@supports not (display: grid) {
+  .reader-viewport--center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.reader-viewport__content {
+  width: 100%;
+  max-width: 100%;
+  padding: var(--spacing-8);
+}
+
+/* For comic content, ensure it doesn't exceed viewport but can be large */
+.reader-viewport--center .reader-viewport__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* Comics can be wider than text content */
+.reader-viewport--center .reader-viewport__content img {
+  max-width: 100%;
+  max-height: 100vh;
+  height: auto;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Text content should be constrained to 72ch for readability */
+.reader-viewport__content .text-content {
+  max-width: 72ch;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .reader-viewport__content {
+    padding: var(--spacing-12);
+  }
+}
+
+@media (min-width: 1024px) {
+  .reader-viewport__content {
+    padding: var(--spacing-16);
+  }
+}

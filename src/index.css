@@ -11,15 +11,15 @@ body {
 
 body {
   margin: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--bg);
+  color: var(--fg);
   font-family: var(--font-family-base);
-  font-size: var(--text-base);
-  line-height: var(--line-height);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
 }
 
 a {
-  color: var(--color-link);
+  color: var(--accent);
 }
 
 a:hover {
@@ -29,11 +29,11 @@ a:hover {
 button {
   font-family: inherit;
   font-size: inherit;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-4) var(--spacing-8);
   border-radius: var(--radius-sm);
-  border: none;
-  background: var(--color-primary);
-  color: var(--color-primary-contrast);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--bg);
   cursor: pointer;
 }
 
@@ -46,9 +46,9 @@ button:disabled {
   position: absolute;
   top: -40px;
   left: 0;
-  background: var(--color-primary);
-  color: var(--color-primary-contrast);
-  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--accent);
+  color: var(--bg);
+  padding: var(--spacing-4) var(--spacing-8);
   z-index: 1000;
   text-decoration: none;
 }

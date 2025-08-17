@@ -55,7 +55,18 @@ export async function searchArticles(
 
 let readabilityWorker: Worker | undefined;
 
-export async function fetchReadableHtml(url: string): Promise<string | null> {
+interface ReadabilityResult {
+  html: string | null;
+  mainImage?: string | null;
+  corsBlocked?: boolean;
+}
+
+export async function fetchReadableHtml(
+  url: string,
+  options: {
+    fetchContent?: boolean;
+  } = {},
+): Promise<ReadabilityResult> {
   return new Promise((resolve, reject) => {
     if (!readabilityWorker) {
       readabilityWorker = new Worker(
@@ -67,14 +78,23 @@ export async function fetchReadableHtml(url: string): Promise<string | null> {
     const worker = readabilityWorker;
 
     const onMessage = (
-      event: MessageEvent<{ html: string | null; error?: string }>,
+      event: MessageEvent<{
+        html: string | null;
+        mainImage?: string | null;
+        error?: string;
+        corsBlocked?: boolean;
+      }>,
     ) => {
       worker.removeEventListener('message', onMessage);
       worker.removeEventListener('error', onError);
-      if (event.data.error) {
+      if (event.data.error && !event.data.corsBlocked) {
         reject(new Error(event.data.error));
       } else {
-        resolve(event.data.html);
+        resolve({
+          html: event.data.html,
+          mainImage: event.data.mainImage,
+          corsBlocked: event.data.corsBlocked,
+        });
       }
     };
 
@@ -86,6 +106,9 @@ export async function fetchReadableHtml(url: string): Promise<string | null> {
 
     worker.addEventListener('message', onMessage);
     worker.addEventListener('error', onError);
-    worker.postMessage(url);
+    worker.postMessage({
+      url,
+      fetchContent: options.fetchContent ?? true,
+    });
   });
 }
