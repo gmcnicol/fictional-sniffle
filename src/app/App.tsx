@@ -6,7 +6,6 @@ import {
   Link,
   useLocation,
 } from 'react-router-dom';
-import { Button } from '../components';
 import { HelpModal } from '../features/help/HelpModal.tsx';
 const FeedListPage = lazy(() =>
   import('../features/feeds/FeedListPage').then((m) => ({
@@ -25,6 +24,8 @@ const SettingsPage = lazy(() =>
 );
 import { useTheme, type Theme } from '../theme/theme';
 import { LiveRegionContext } from '../hooks/useLiveRegion.ts';
+import { FeedSidebar } from '../features/feeds/FeedSidebar.tsx';
+import { Button } from '../components';
 
 function App() {
   const { theme, setTheme } = useTheme();
@@ -47,6 +48,7 @@ function Layout({
   const mainRef = useRef<HTMLElement>(null);
   const [liveMessage, setLiveMessage] = useState('');
   const [showHelp, setShowHelp] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     mainRef.current?.focus();
@@ -65,36 +67,37 @@ function Layout({
       <div aria-live="polite" className="sr-only">
         {liveMessage}
       </div>
-      <header aria-label="Site header">
-        <nav aria-label="Primary navigation">
-          <Link to="/">Feeds</Link> <Link to="/settings">Settings</Link>
-        </nav>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <Button
-            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-          >
-            Switch to {theme === 'light' ? 'dark' : 'light'} mode
-          </Button>
+      <div style={{ display: 'flex', minHeight: '100vh' }}>
+        <FeedSidebar
+          collapsed={collapsed}
+          onToggle={() => setCollapsed((c) => !c)}
+        />
+        <main
+          id="main-content"
+          aria-label="Main content"
+          tabIndex={-1}
+          ref={mainRef}
+          style={{ flex: 1, padding: '1rem' }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Link to="/">Manage feeds</Link>
+            <Button
+              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            >
+              Switch to {theme === 'light' ? 'dark' : 'light'} mode
+            </Button>
+          </div>
           <Button onClick={() => setShowHelp(true)}>Help</Button>
-        </div>
-      </header>
-      <main
-        id="main-content"
-        aria-label="Main content"
-        tabIndex={-1}
-        ref={mainRef}
-      >
-        <Suspense fallback={<p>Loading...</p>}>
-          <Routes>
-            <Route path="/" element={<FeedListPage />} />
-            <Route path="/reader/:articleId" element={<ReaderPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Routes>
-        </Suspense>
-      </main>
-      <footer aria-label="Site footer">
-        <p>RSS Web Comics Reader</p>
-      </footer>
+          <Suspense fallback={<p>Loading...</p>}>
+            <Routes>
+              <Route path="/" element={<FeedListPage />} />
+              <Route path="/reader/:articleId" element={<ReaderPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/feed/:feedId" element={<FeedListPage />} />
+            </Routes>
+          </Suspense>
+        </main>
+      </div>
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </LiveRegionContext.Provider>
   );
