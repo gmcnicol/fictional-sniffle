@@ -29,6 +29,18 @@ export async function fetchFeed(
   const headers = new Headers();
   if (etag) headers.set('If-None-Match', etag);
   if (lastModified) headers.set('If-Modified-Since', lastModified);
+  headers.set(
+    'Accept',
+    'application/rss+xml, application/xml;q=0.9, */*;q=0.8',
+  );
+  try {
+    headers.set(
+      'User-Agent',
+      'fictional-sniffle/1.0 (+https://github.com/this-repo)',
+    );
+  } catch {
+    // Browsers forbid setting the User-Agent; ignore in that case.
+  }
 
   let attempt = 0;
   let useProxy = false;
@@ -49,6 +61,9 @@ export async function fetchFeed(
         return { status: 304 };
       }
       const text = await res.text();
+      if (res.status >= 400) {
+        console.error(`fetchFeed ${target} responded ${res.status}:`, text);
+      }
       return {
         status: res.status,
         etag: res.headers.get('etag') ?? undefined,

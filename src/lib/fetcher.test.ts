@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { extractMainImage } from './fetcher.ts';
+import { extractMainImage, fetchFeed } from './fetcher.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -70,5 +70,30 @@ describe('extractMainImage', () => {
     );
     expect(src).toBe('https://www.penny-arcade.com/images/example.png');
     expect(alt).toBeNull();
+  });
+});
+
+describe('fetchFeed', () => {
+  it('adds Accept and User-Agent headers', async () => {
+    const originalFetch = globalThis.fetch;
+    let received: Headers | null = null;
+    globalThis.fetch = async (
+      _input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      received = init?.headers ? new Headers(init.headers) : new Headers();
+      return new Response('ok', { status: 200 });
+    };
+
+    await fetchFeed('https://example.com/rss');
+
+    expect(received?.get('accept')).toBe(
+      'application/rss+xml, application/xml;q=0.9, */*;q=0.8',
+    );
+    expect(received?.get('user-agent')).toBe(
+      'fictional-sniffle/1.0 (+https://github.com/this-repo)',
+    );
+
+    globalThis.fetch = originalFetch;
   });
 });
