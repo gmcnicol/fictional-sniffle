@@ -1,4 +1,4 @@
-import { useEffect, useState, type SyntheticEvent } from 'react';
+import { useCallback, useEffect, useState, type SyntheticEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Button, Panel } from '../../components';
@@ -25,17 +25,27 @@ export function ReaderPage() {
   }, [articleId]);
 
   const panZoom = usePanZoom();
+  const {
+    containerRef,
+    scale,
+    offset,
+    handleWheel,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+  } = panZoom;
   const [caption, setCaption] = useState('');
   const [expanded, setExpanded] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const reduceMotion = useReducedMotion();
   const announce = useLiveRegion();
 
-  const handleOpenOriginal = () => {
+  const handleOpenOriginal = useCallback(() => {
     if (!data?.article) return;
     window.open(data.article.link, '_blank');
-  };
+  }, [data]);
 
-  const handleToggleRead = async () => {
+  const handleToggleRead = useCallback(async () => {
     if (!data?.article) return;
     const { article } = data;
     const isRead = await readStateRepo.isRead(article.id!);
@@ -46,7 +56,23 @@ export function ReaderPage() {
       await readStateRepo.markRead(article.id!);
       announce('Marked as read');
     }
+  }, [data, announce]);
+
+  const handleToggleFullscreen = () => {
+    if (!isFullscreen) {
+      containerRef.current?.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
   };
+
+  useEffect(() => {
+    const onChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
 
   useEffect(() => {
     if (!data?.article) return;
@@ -82,20 +108,27 @@ export function ReaderPage() {
     return unregister;
   }, [data, handleToggleRead, handleOpenOriginal, navigate]);
 
+  useEffect(() => {
+    if (!data?.article) return;
+    (async () => {
+      const articles = await db.articles
+        .where('feedId')
+        .equals(data.article.feedId)
+        .sortBy('publishedAt');
+      const idx = articles.findIndex((a) => a.id === data.article.id);
+      const next = articles[idx + 1];
+      if (next?.mainImageUrl) {
+        const img = new Image();
+        img.src = next.mainImageUrl;
+      }
+    })();
+  }, [data]);
+
   if (!data?.article || !data.feed) {
     return <Panel>Article not found</Panel>;
   }
 
   const { article, feed } = data;
-  const {
-    containerRef,
-    scale,
-    offset,
-    handleWheel,
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
-  } = panZoom;
 
   const handleImageLoad = (e: SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
@@ -109,10 +142,14 @@ export function ReaderPage() {
 
   return (
     <Panel>
-      <h1>{article.title}</h1>
-      <p>
-        {feed.title} – {article.publishedAt.toLocaleDateString()}
-      </p>
+      {!isFullscreen && (
+        <>
+          <h1>{article.title}</h1>
+          <p>
+            {feed.title} – {article.publishedAt.toLocaleDateString()}
+          </p>
+        </>
+      )}
       {article.mainImageUrl && (
         <figure
           className="reader-image-container"
@@ -158,6 +195,9 @@ export function ReaderPage() {
       </Button>
       <Button onClick={handleOpenOriginal}>Open Original</Button>
       <Button onClick={handleToggleRead}>Toggle Read</Button>
+      <Button onClick={handleToggleFullscreen}>
+        {isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
+      </Button>
     </Panel>
   );
 }
