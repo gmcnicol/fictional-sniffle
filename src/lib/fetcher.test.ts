@@ -76,21 +76,22 @@ describe('extractMainImage', () => {
 describe('fetchFeed', () => {
   it('adds Accept and User-Agent headers', async () => {
     const originalFetch = globalThis.fetch;
-    let received: Headers | null = null;
+    let received: Record<string, string> | null = null;
     globalThis.fetch = async (
       _input: RequestInfo | URL,
       init?: RequestInit,
     ) => {
-      received = init?.headers ? new Headers(init.headers) : new Headers();
+      const headers = new Headers(init?.headers);
+      received = Object.fromEntries(headers.entries());
       return new Response('ok', { status: 200 });
     };
 
     await fetchFeed('https://example.com/rss');
 
-    expect(received?.get('accept')).toBe(
+    expect(received?.['accept']).toBe(
       'application/rss+xml, application/xml;q=0.9, */*;q=0.8',
     );
-    expect(received?.get('user-agent')).toBe(
+    expect(received?.['user-agent']).toBe(
       'fictional-sniffle/1.0 (+https://github.com/this-repo)',
     );
 
