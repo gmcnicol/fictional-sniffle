@@ -74,20 +74,29 @@ export async function fetchFeed(
  * Extract the largest image from an HTML document. Falls back to the
  * page's `og:image` meta tag when no <img> elements are found.
  */
-export function extractMainImage(html: string, baseUrl: string): string | null {
+export interface MainImage {
+  src: string | null;
+  alt: string | null;
+}
+
+export function extractMainImage(html: string, baseUrl: string): MainImage {
   const doc = new DOMParser().parseFromString(html, 'text/html');
 
   const hostname = new URL(baseUrl).hostname;
-  const domainRules = domainRulesData as Record<string, { image: string }>;
+  const domainRules = domainRulesData as Record<
+    string,
+    { image: string; alt?: string }
+  >;
   const rule = domainRules[hostname];
   if (rule?.image) {
     const img = doc.querySelector<HTMLImageElement>(rule.image);
     const src = img?.getAttribute('src') || img?.getAttribute('data-src');
+    const alt = rule.alt ? (img?.getAttribute(rule.alt) ?? null) : null;
     if (src) {
       try {
-        return new URL(src, baseUrl).href;
+        return { src: new URL(src, baseUrl).href, alt };
       } catch {
-        return src;
+        return { src, alt };
       }
     }
   }
@@ -114,18 +123,18 @@ export function extractMainImage(html: string, baseUrl: string): string | null {
     }
   }
 
-  if (bestSrc) return bestSrc;
+  if (bestSrc) return { src: bestSrc, alt: null };
 
   const ogImage = doc
     .querySelector('meta[property="og:image"]')
     ?.getAttribute('content');
   if (ogImage) {
     try {
-      return new URL(ogImage, baseUrl).href;
+      return { src: new URL(ogImage, baseUrl).href, alt: null };
     } catch {
-      return ogImage;
+      return { src: ogImage, alt: null };
     }
   }
 
-  return null;
+  return { src: null, alt: null };
 }
