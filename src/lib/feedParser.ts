@@ -36,6 +36,28 @@ export function parseFeed(xml: string): ParsedItem[] {
     return items;
   }
 
+  if (json['rdf:RDF']) {
+    const rdf = json['rdf:RDF'];
+    const rdfItems = Array.isArray(rdf.item)
+      ? rdf.item
+      : rdf.item
+        ? [rdf.item]
+        : [];
+    for (const item of rdfItems) {
+      const image = item.enclosure?.type?.startsWith('image')
+        ? item.enclosure.url
+        : item['media:content']?.url;
+      const published = item.pubDate ?? item['dc:date'];
+      items.push({
+        title: item.title ?? '',
+        link: item.link ?? '',
+        publishedAt: published ? new Date(published) : new Date(),
+        image,
+      });
+    }
+    return items;
+  }
+
   if (json.feed) {
     const entries = Array.isArray(json.feed.entry)
       ? json.feed.entry

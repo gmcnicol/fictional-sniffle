@@ -5,6 +5,8 @@ const rssSample = `<?xml version="1.0"?><rss version="2.0" xmlns:media="http://s
 
 const atomSample = `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"><title>Sample Atom</title><entry><title>Entry 1</title><link href="http://example.com/a1"/><updated>2024-01-01T00:00:00Z</updated><media:content xmlns:media="http://search.yahoo.com/mrss/" url="http://example.com/a1.png" type="image/png"/></entry></feed>`;
 
+const rdfSample = `<?xml version="1.0"?><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel rdf:about="http://example.com"><title>Sample RDF</title></channel><item rdf:about="http://example.com/1"><title>Item 1</title><link>http://example.com/1</link><dc:date>2024-01-01T00:00:00Z</dc:date></item></rdf:RDF>`;
+
 describe('parseFeed', () => {
   it('parses RSS items', () => {
     const items = parseFeed(rssSample);
@@ -18,5 +20,11 @@ describe('parseFeed', () => {
     expect(items[0].title).toBe('Entry 1');
     expect(items[0].link).toBe('http://example.com/a1');
     expect(items[0].image).toBe('http://example.com/a1.png');
+  });
+
+  it('parses RSS 1.0 items', () => {
+    const items = parseFeed(rdfSample);
+    expect(items[0].title).toBe('Item 1');
+    expect(items[0].link).toBe('http://example.com/1');
   });
 });
