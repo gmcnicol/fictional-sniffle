@@ -1,138 +1,68 @@
-# Agents Overview — RSS Web Comics Reader (SPA)
+# AGENTS.md — Zero‑Tolerance UX Upgrade for the RSS Web Comics Reader
 
-This document defines the system as a set of “agents” (clear ownership areas) so an AI assistant or contributor can work in parallel with minimal collisions. The app is a **static single-page app** (SPA) deployable on **GitHub Pages**. Tech: **TypeScript + React + Vite**, **Dexie (IndexedDB)** for storage, **Framer Motion** for subtle animations, **Mozilla Readability** for full-content extraction (when CORS permits), and a **Service Worker** for offline reads. The default theme follows the user’s system preference (prefers-color-scheme) with a muted palette (slightly lighter dark on darker background, and vice versa for light).
+This document updates our agent responsibilities and raises the quality bar. **A poor UI/UX is not an option.** All work MUST meet the quality gates below or the PR is rejected by CI. There is no “we’ll tidy this later.”
 
-## High-level Goals
-- **Great web comic reading experience**: center images both horizontally and vertically, render alt text under images (e.g., xkcd’s secondary punchline).
-- **Feed management**: add/edit/remove feeds, folder tags, sort, **OPML import/export**.
-- **Content extraction**: display the main image or the full article when feasible. Respect RSS/Atom content first; otherwise attempt site fetch + Readability. Handle CORS gracefully (fallbacks, user guidance).
-- **Automatic marking as read** based on visibility / scroll threshold, with undo.
-- **Local-first**: Dexie for articles, feeds, settings, and read states. No backend required.
-- **Accessible and fast**: keyboard shortcuts, focus states, reduced motion settings.
-- **Deployable on GitHub Pages**: simple pipeline from `main` branch.
+## Zero‑Tolerance UX Principle
 
----
+- The reader is the product. Comics must **load fast**, **center perfectly** (horizontal & vertical), and **render alt text** beneath the image every single time. Any jitter, layout shift, or broken caption is a defect.
+- Visual style is **muted**, system-dependent theme (prefers-color-scheme): slightly lighter dark on darker background (dark mode); the inverse for light. No neon, no busy gradients, no novelty fonts.
+- Obvious, consistent controls. Minimal chrome, maximum reading focus.
 
-## Agent 1 — UI/UX & Theming Agent
-**Purpose:** Create the visual language and layout primitives: muted themes, spacing, typography, centered comic viewer, and responsive behavior.
+## Quality Gates (Non‑Negotiable)
 
-**Inputs:** Design tokens, system theme (prefers-color-scheme), app settings.  
-**Outputs:** A small design system (tokens + components), layout for reader/list, accessible color pairs.
+Every PR must pass these **blocking** checks in GitHub Actions:
 
-**Key Responsibilities:**
-- Define color tokens for light/dark, ensuring muted contrast while meeting WCAG AA for text.
-- Implement system-dependent theme with CSS variables and media queries; provide an override.
-- Reader surface that **centers comics** horizontally and vertically; fit-to-width with max zoom.
-- Display alt text directly beneath the image when present (e.g., `title`, `alt`, or `img[title]`).
+1. **Type Safety:** `npm run typecheck` (TS strict) — 0 errors.
+2. **Lint & Format:** `npm run lint` (ESLint) + `npm run format:check` (Prettier) — 0 errors.
+3. **Unit Tests:** `npm test -- --coverage` — **80%+ overall**, **90%+** for core modules (`reader`, `content-extraction`, `feed-parse`, `rules`).
+4. **E2E Tests (Playwright):** Core flows (reader centering & alt text, auto mark‑as‑read + undo, keyboard nav, OPML import/export, offline read) — all green.
+5. **Accessibility:** axe checks pass (`aria`, roles, focus, skip links). No WCAG AA failures for text contrast.
+6. **Performance (Lighthouse CI, mobile config):** LCP **≤ 2.5s**, TTI **≤ 3.0s**, Performance score **≥ 90**, CLS **≤ 0.1** on the Reader route.
+7. **Bundle & Assets:** Initial JS **≤ 150KB gzip**, images lazy & async decode, no layout shift for hero image (aspect-ratio boxes).
+8. **PWA/Offline:** App shell + last N articles & images available offline; LRU eviction enforced.
+9. **Security/Sanitization:** DOMPurify applied to all Readability HTML; no unsafe HTML injections.
 
----
+**Deviation from any gate = automatic CI failure and PR rejection.**
 
-## Agent 2 — Storage & Models Agent (Dexie)
-**Purpose:** Define Dexie schema, migrations, and data access patterns.
+## Agents (updated scope)
 
-**Inputs:** Feeds (user-added or via OPML), fetched articles, read state events.  
-**Outputs:** Dexie tables, typed repositories, query helpers.
+### Agent 1 — Visual System & Theming
 
-**Key Responsibilities:**
-- Tables: `feeds`, `articles`, `readState`, `settings`, `folders` (optional), `syncLog`.
-- Indices for fast queries: by `feedId`, `publishedAt`, `read`.
-- Migrations with versioning and data backfill rules.
-- Import/export **OPML** for feeds and folders. Export local state (optional).
+Owns tokens, typography, color, spacing, surfaces. Ensures muted themes and perfect centering primitives. Delivers design tokens (`tokens.css`), component library (`Panel`, `Toolbar`, `Button`, `ListItem`), and layout utilities.
 
----
+### Agent 2 — Reader Experience
 
-## Agent 3 — Networking & Fetch Agent
-**Purpose:** Fetch and parse feeds/articles safely in a browser-only environment.
+Owns the Reader route. Guarantees image centering (both axes), alt text caption, zoom/pan ergonomics, scroll restoration, and no layout shift. Integrates keyboard shortcuts and auto mark‑as‑read.
 
-**Inputs:** Feed URLs, user-triggered refresh, background sync interval.  
-**Outputs:** Parsed items, normalized article records, fetch diagnostics.
+### Agent 3 — Content Extraction
 
-**Key Responsibilities:**
-- Fetch RSS/Atom with CORS-aware strategies: direct fetch; if blocked, use XML via CORS-enabled endpoints (documented) or on-demand user-entered proxy (optional).
-- Parse: support RSS 2.0, Atom 1.0, and common extensions (Media RSS). Extract `title`, `link`, `content:encoded`, `description`, `enclosures`, images.
-- Normalize images: choose “main image” via heuristics (enclosure image > content:encoded first img > og:image when full page fetched).
+Owns Readability worker, DOMPurify sanitization, image heuristics, and domain rules JSON (xkcd, SMBC, etc.). Ensures main image + caption fidelity when RSS lacks good content.
 
----
+### Agent 4 — Feeds & OPML
 
-## Agent 4 — Content Extraction Agent (Readability + Heuristics)
-**Purpose:** Attempt to display **main image** or **complete article** from the parent site.
+Owns add/edit/remove feeds, folders/tags, OPML import/export, discovery for `<link rel="alternate">`. Guarantees dedupe and correct unread counts.
 
-**Inputs:** Article `link` URLs, fetched HTML (when CORS allows), RSS-provided HTML/snippets.  
-**Outputs:** Cleaned HTML, main image URL, alt text (when available).
+### Agent 5 — Networking & Resilience
 
-**Key Responsibilities:**
-- Use **Mozilla Readability** on fetched HTML to get article body; sanitize HTML for display.
-- Heuristics for comics:
-  - If page contains a single dominant `<img>` inside `<article>` or known comic containers, prefer it.
-  - Pull `alt`/`title` attributes as “Alt text” caption.
-- Maintain a per-domain rules map for popular comics (e.g., xkcd, SMBC) to grab the correct image if needed. Rules stored in JSON and versioned.
+Owns fetch/parse, ETag/Last‑Modified, backoff, CORS messaging, and per‑feed error surfaces. No silent failures.
 
-**Limitations & Fallbacks:**
-- CORS may block full-page fetch. Fallback to RSS `content:encoded` or `description`. If neither yields a main image, show a prominent “Open Original” button.
+### Agent 6 — A11y & Internationalization
 
----
+Owns roles/landmarks, keyboard navigation, reduced motion handling, and message catalog prep. Ensures axe checks pass.
 
-## Agent 5 — Reader & Interaction Agent
-**Purpose:** Implement the reading experience and read-state logic.
+### Agent 7 — Performance & Offline
 
-**Inputs:** Article list, user interactions (scroll, keyboard), settings.  
-**Outputs:** Reader UI updates, read/unread transitions, navigation.
+Owns Lighthouse budgets, code splitting, image policies, Workbox caching strategy, and LRU eviction.
 
-**Key Responsibilities:**
-- Auto mark-as-read when the article is **≥60% visible for 1.5s** (configurable). Provide “Mark Unread” undo.
-- Keyboard: `j/k` next/prev, `u` unread toggle, `o` open original, `g` goto feed list, `/` search.
-- Animations (Framer Motion): feed list item enter/exit, article expansion, subtle page transitions.
-- Persist scroll/restoration positions per feed.
+### Agent 8 — CI/CD & QA
 
----
+Owns GitHub Actions workflow, test orchestration (unit/e2e/axe/LHCI), artifacts, and QA/UAT playbooks.
 
-## Agent 6 — Feed Management Agent
-**Purpose:** Manage the lifecycle of feeds, folders, sort orders, and OPML.
+## Definition of Done (DoD)
 
-**Inputs:** User feed URLs, OPML uploads, edits.  
-**Outputs:** Updated feed catalog, OPML exports, validation errors.
+A task is DONE only if:
 
-**Key Responsibilities:**
-- Add/edit/remove feeds; validate URL and attempt discovery of `rel="alternate"` feed links when a webpage URL is pasted.
-- Optional folders/tags. Sort by name/unread count/last updated.
-- OPML import (file input) + export (download). Deduplicate feeds by URL (normalize tracking params).
-
----
-
-## Agent 7 — Accessibility & Internationalization Agent
-**Purpose:** Ensure the app is usable by keyboard and assistive tech, and ready for i18n.
-
-**Key Responsibilities:**
-- Proper roles/landmarks, focus outlines, skip-to-content, aria-live for updates.
-- Alt text rendering under images; respect user “reduced motion” preference.
-- Externalize copy into a message catalog (en.json) for future translations.
-
----
-
-## Agent 8 — Offline & Performance Agent
-**Purpose:** Make it work offline and feel snappy.
-
-**Key Responsibilities:**
-- Service Worker (Workbox) to cache app shell + recently read articles and images.
-- Pre-cache fonts and core assets.
-- Performance budgets (LCP < 2.5s on 3G; JS < 150KB gzip initial).
-
----
-
-## Agent 9 — Build & Deployment Agent
-**Purpose:** Ship to GitHub Pages reliably.
-
-**Key Responsibilities:**
-- Vite build with `base` set to repo subpath.
-- GitHub Actions workflow: on push to `main`, build and deploy to `gh-pages` branch.
-- Cache node_modules to speed builds.
-
----
-
-## Architecture Snapshot
-- **React + Vite + TypeScript** SPA.
-- **Dexie** for persistent local storage.
-- **Framer Motion** for subtle motion.
-- **Readability + heuristics** for full content / main image extraction (best-effort with CORS).
-- **Service Worker** for offline reads.
-- **No server** required; optional micro-proxy is documented but not mandated.
+- All gates above pass in GitHub Actions for Node 20 on Ubuntu latest.
+- Docs (README/CHANGELOG) are updated.
+- Screenshots for Reader centering & alt caption are attached to the PR.
+- No TODO/FIXME left behind.
