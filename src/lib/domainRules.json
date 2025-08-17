@@ -1,4 +1,6 @@
 {
-  "xkcd.com": { "image": "#comic img" },
-  "www.smbc-comics.com": { "image": "#cc-comic" }
+  "xkcd.com": { "image": "#comic img", "alt": "title" },
+  "www.smbc-comics.com": { "image": "#cc-comic" },
+  "dilbert.com": { "image": ".img-comic" },
+  "www.penny-arcade.com": { "image": "#comicFrame img" }
 }
