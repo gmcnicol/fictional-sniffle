@@ -1,161 +1,108 @@
-import { useCallback, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Panel, UndoToast } from '../../components';
-import { db } from '../../lib/db';
-import { registerShortcuts } from '../../lib/shortcuts.ts';
-import { useDexieLiveQuery } from '../../hooks/useDexieLiveQuery';
-import { usePanZoom } from '../../hooks/usePanZoom';
-import { useReadState } from '../../hooks/useReadState';
-import { useAutoMarkAsRead } from '../../hooks/useAutoMarkAsRead';
-import { useScrollPosition } from '../../hooks/useScrollPosition';
-import { Reader } from './Reader';
-import './ReaderPage.css';
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { Panel } from '../../components';
+import { articlesRepo, feedsRepo } from '../../lib/repositories.ts';
+import type { Article, Feed } from '../../lib/db.ts';
 
 export function ReaderPage() {
-  const { articleId } = useParams();
-  const navigate = useNavigate();
-  const data = useDexieLiveQuery(async () => {
-    if (!articleId) return null;
-    const id = Number(articleId);
-    const article = await db.articles.get(id);
-    if (!article) return null;
-    const feed = await db.feeds.get(article.feedId);
-    return { article, feed };
+  const { articleId } = useParams<{ articleId: string }>();
+  const [article, setArticle] = useState<Article | null>(null);
+  const [feed, setFeed] = useState<Feed | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadArticle = async () => {
+      if (!articleId) return;
+
+      try {
+        console.log('ReaderPage: Loading article with ID:', articleId);
+
+        // Get article by ID
+        const foundArticle = await articlesRepo.get(parseInt(articleId));
+        console.log('ReaderPage: Found article:', foundArticle);
+
+        if (foundArticle) {
+          setArticle(foundArticle);
+
+          // Load the feed
+          const articleFeed = await feedsRepo.get(foundArticle.feedId);
+          console.log('ReaderPage: Found feed:', articleFeed);
+          setFeed(articleFeed || null);
+        } else {
+          console.log('ReaderPage: Article not found with ID:', articleId);
+        }
+      } catch (error) {
+        console.error('Failed to load article:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadArticle();
   }, [articleId]);
 
-  const panZoom = usePanZoom();
-  const {
-    containerRef,
-    scale,
-    offset,
-    handleWheel,
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
-  } = panZoom;
-
-  // Read state management with undo functionality
-  const readState = useReadState({
-    articleId: Number(articleId) || 0,
-    initialReadState: false,
-  });
-
-  // Auto mark-as-read functionality
-  const autoMarkAsRead = useAutoMarkAsRead({
-    articleId: Number(articleId) || 0,
-    isRead: readState.isRead,
-    threshold: 0.6,
-    delay: 1500,
-    enabled: true,
-  });
-
-  // Scroll position management
-  useScrollPosition({
-    articleId: Number(articleId) || 0,
-    enabled: true,
-  });
-
-  const handleOpenOriginal = useCallback(() => {
-    if (!data?.article) return;
-    window.open(data.article.link, '_blank');
-  }, [data]);
-
-  const handleToggleRead = useCallback(async () => {
-    await readState.toggleReadState();
-  }, [readState]);
-
-  useEffect(() => {
-    if (!data?.article) return;
-    const { article } = data;
-    const unregister = registerShortcuts({
-      nextArticle: async () => {
-        const articles = await db.articles
-          .where('feedId')
-          .equals(article.feedId)
-          .sortBy('publishedAt');
-        const idx = articles.findIndex((a) => a.id === article.id);
-        const next = articles[idx + 1];
-        if (next) navigate(`/reader/${next.id}`);
-      },
-      prevArticle: async () => {
-        const articles = await db.articles
-          .where('feedId')
-          .equals(article.feedId)
-          .sortBy('publishedAt');
-        const idx = articles.findIndex((a) => a.id === article.id);
-        const prev = articles[idx - 1];
-        if (prev) navigate(`/reader/${prev.id}`);
-      },
-      toggleRead: () => {
-        // If there's a pending undo, execute it; otherwise toggle read state
-        if (readState.pendingUndo) {
-          readState.handleUndo();
-        } else {
-          handleToggleRead();
-        }
-      },
-      openOriginal: handleOpenOriginal,
-      focusSearch: () => {
-        document
-          .querySelector<HTMLInputElement>('input[type="search"]')
-          ?.focus();
-      },
-      gotoFeedList: () => navigate('/'),
-    });
-    return unregister;
-  }, [data, handleToggleRead, handleOpenOriginal, navigate, readState]);
-
-  useEffect(() => {
-    if (!data?.article) return;
-    (async () => {
-      const articles = await db.articles
-        .where('feedId')
-        .equals(data.article.feedId)
-        .sortBy('publishedAt');
-      const idx = articles.findIndex((a) => a.id === data.article.id);
-      const next = articles[idx + 1];
-      if (next?.mainImageUrl) {
-        const img = new Image();
-        img.src = next.mainImageUrl;
-      }
-    })();
-  }, [data]);
-
-  if (!data?.article || !data.feed) {
-    return <Panel>Article not found</Panel>;
+  if (loading) {
+    return (
+      <Panel>
+        <p>Loading article...</p>
+      </Panel>
+    );
   }
 
-  const { article, feed } = data;
+  if (!article) {
+    return (
+      <Panel>
+        <p>Article not found</p>
+        <Link to="/">← Back to feeds</Link>
+      </Panel>
+    );
+  }
 
   return (
-    <>
-      <div ref={autoMarkAsRead.setElement}>
-        <Reader
-          article={article}
-          feed={feed}
-          onOpenOriginal={handleOpenOriginal}
-          onToggleRead={handleToggleRead}
-          containerRef={containerRef}
-          panZoomHandlers={{
-            onWheel: handleWheel,
-            onPointerDown: handlePointerDown,
-            onPointerMove: handlePointerMove,
-            onPointerUp: handlePointerUp,
-          }}
-          scale={scale}
-          offset={offset}
-        />
+    <Panel>
+      <div style={{ marginBottom: '1rem' }}>
+        <Link to="/">← Back to feeds</Link>
+        {feed && <span> | {feed.title}</span>}
       </div>
 
-      {/* Undo toast */}
-      {readState.pendingUndo && (
-        <UndoToast
-          message={readState.pendingUndo.description}
-          onUndo={readState.handleUndo}
-          onDismiss={readState.clearPendingUndo}
-          visible={!!readState.pendingUndo}
-        />
-      )}
-    </>
+      <article>
+        <h1>{article.title}</h1>
+
+        {article.mainImageUrl &&
+          !article.contentHtml?.includes(article.mainImageUrl) && (
+            <div style={{ textAlign: 'center', margin: '1rem 0' }}>
+              <img
+                src={article.mainImageUrl}
+                alt={article.mainImageAlt || 'Article image'}
+                style={{ maxWidth: '100%', height: 'auto' }}
+              />
+            </div>
+          )}
+
+        <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '1rem' }}>
+          Published: {new Date(article.publishedAt).toLocaleDateString()} |{' '}
+          <a href={article.link} target="_blank" rel="noopener noreferrer">
+            View Original
+          </a>
+        </div>
+
+        {article.contentHtml ? (
+          <div
+            style={{
+              textAlign: 'center',
+              marginTop: '1rem',
+            }}
+          >
+            <div dangerouslySetInnerHTML={{ __html: article.contentHtml }} />
+          </div>
+        ) : (
+          <p>
+            <a href={article.link} target="_blank" rel="noopener noreferrer">
+              Read full article on original site
+            </a>
+          </p>
+        )}
+      </article>
+    </Panel>
   );
 }
