@@ -1,15 +1,9 @@
-import { db, type ReadState } from '../db.ts';
-
+// Stub for backward compatibility
 export const readStateRepo = {
-  async markRead(articleId: number) {
-    const state: ReadState = { articleId, read: true };
-    return db.readState.put(state);
+  async get(_articleId: number): Promise<{ read: boolean } | undefined> {
+    return undefined;
   },
-  async markUnread(articleId: number) {
-    return db.readState.delete(articleId);
-  },
-  async isRead(articleId: number) {
-    const state = await db.readState.get(articleId);
-    return state?.read ?? false;
-  },
+  async set(_articleId: number, _read: boolean): Promise<void> {
+    // No-op for now
+  }
 };

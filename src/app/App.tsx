@@ -26,12 +26,21 @@ import { useTheme, type Theme } from '../theme/theme';
 import { LiveRegionContext } from '../hooks/useLiveRegion.ts';
 import { FeedSidebar } from '../features/feeds/FeedSidebar.tsx';
 import { Button } from '../components';
+import { scheduleSync } from '../lib/sync';
 
 function App() {
   const { theme, setTheme } = useTheme();
 
+  useEffect(() => {
+    // Start automatic feed syncing when the app initializes
+    console.log('Starting scheduled sync...');
+    scheduleSync().catch(error => {
+      console.error('Failed to start sync:', error);
+    });
+  }, []);
+
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/fictional-sniffle">
       <Layout theme={theme} setTheme={setTheme} />
     </BrowserRouter>
   );

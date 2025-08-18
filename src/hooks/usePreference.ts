@@ -1,22 +1,37 @@
-import { useCallback } from 'react';
-import { db } from '../lib/db';
-import { useDexieLiveQuery } from './useDexieLiveQuery.ts';
+import { useCallback, useState, useEffect } from 'react';
+import { db } from '../lib/db.ts';
 
 export function usePreference(key: string, defaultValue: string) {
-  const value = useDexieLiveQuery(async () => {
-    const pref = await db.preferences.get(key);
-    return pref?.value ?? defaultValue;
+  const [value, setValue] = useState(defaultValue);
+
+  useEffect(() => {
+    const loadValue = async () => {
+      try {
+        const pref = await db.getPreference(key);
+        setValue(pref?.value ?? defaultValue);
+      } catch (error) {
+        console.error('Failed to load preference:', key, error);
+        setValue(defaultValue);
+      }
+    };
+    
+    loadValue();
   }, [key, defaultValue]);
 
   const set = useCallback(
-    (val: string) => {
-      if (val) {
-        return db.preferences.put({ key, value: val });
+    async (val: string) => {
+      try {
+        setValue(val);
+        await db.setPreference(key, val);
+      } catch (error) {
+        console.error('Failed to set preference:', key, error);
+        // Revert on error
+        const pref = await db.getPreference(key);
+        setValue(pref?.value ?? defaultValue);
       }
-      return db.preferences.delete(key);
     },
-    [key],
+    [key, defaultValue],
   );
 
-  return [value ?? defaultValue, set] as const;
+  return [value, set] as const;
 }

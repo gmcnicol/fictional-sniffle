@@ -107,7 +107,7 @@ function createSanitizer() {
   } else {
     // Node/test environment - use JSDOM
     const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
-    return createDOMPurify(dom.window as unknown as Window);
+    return createDOMPurify(dom.window as any);
   }
 }
 

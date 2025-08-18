@@ -1,271 +1,173 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Button, IconButton, ListItem, Panel } from '../../components';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Button, Panel } from '../../components';
 import { AddFeedForm } from './AddFeedForm';
-import { db } from '../../lib/db';
-import type { Feed } from '../../lib/db';
-import { importOpml, exportOpml } from '../../lib/opml';
-import { useDexieLiveQuery } from '../../hooks/useDexieLiveQuery';
+import { feedsRepo, articlesRepo } from '../../lib/repositories.ts';
 import { syncFeedsOnce } from '../../lib/sync';
-import { searchArticles } from '../../lib/queries';
-import { registerShortcuts } from '../../lib/shortcuts';
+import type { Feed, Article } from '../../lib/db.ts';
 
 export function FeedListPage() {
-  const feedsWithUnread = useDexieLiveQuery(async () => {
-    const feeds = await db.feeds.toArray();
-    const result: (Feed & { unread: number; latestArticleId?: number })[] = [];
-    for (const f of feeds) {
-      const articleIds = await db.articles
-        .where('feedId')
-        .equals(f.id!)
-        .primaryKeys();
-      const readCount = await db.readState
-        .where('articleId')
-        .anyOf(articleIds)
-        .and((r) => r.read)
-        .count();
-      const unread = articleIds.length - readCount;
-      const articles = await db.articles
-        .where('feedId')
-        .equals(f.id!)
-        .sortBy('publishedAt');
-      const latest = articles.at(-1);
-      result.push({ ...f, unread, latestArticleId: latest?.id });
-    }
-    return result;
-  }, []);
+  const [feeds, setFeeds] = useState<Feed[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const folders = useDexieLiveQuery(() => db.folders.toArray(), []);
-  const feeds = feedsWithUnread ?? [];
-  const folderList = folders ?? [];
-
-  const [query, setQuery] = useState('');
-  const { feedId: feedIdParam } = useParams();
-  const [feedFilter, setFeedFilter] = useState<number | 'all'>(
-    feedIdParam ? Number(feedIdParam) : 'all',
-  );
-  useEffect(() => {
-    setFeedFilter(feedIdParam ? Number(feedIdParam) : 'all');
-  }, [feedIdParam]);
-  const [folderFilter, setFolderFilter] = useState<number | 'all'>('all');
-  const [unreadOnly, setUnreadOnly] = useState(false);
-  const [hasImage, setHasImage] = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const unregister = registerShortcuts({
-      nextArticle: () => {},
-      prevArticle: () => {},
-      toggleRead: () => {},
-      openOriginal: () => {},
-      focusSearch: () => searchRef.current?.focus(),
-      gotoFeedList: () => {},
-    });
-    return unregister;
-  }, []);
-
-  const articles = useDexieLiveQuery(
-    () =>
-      searchArticles({
-        keyword: query,
-        feedId: feedFilter === 'all' ? undefined : feedFilter,
-        folderId: folderFilter === 'all' ? undefined : folderFilter,
-        unreadOnly,
-        hasImage,
-      }),
-    [query, feedFilter, folderFilter, unreadOnly, hasImage],
-  );
-
-  const grouped = new Map<
-    number | null,
-    (Feed & { unread: number; latestArticleId?: number })[]
-  >();
-  feeds.forEach((f) => {
-    const key = f.folderId ?? null;
-    if (!grouped.has(key)) grouped.set(key, []);
-    grouped.get(key)!.push(f);
-  });
-
-  const handleEdit = async (feed: Feed) => {
-    const title = window.prompt('New title', feed.title);
-    if (title === null) return;
-    const folderName = window.prompt(
-      'Folder (blank for none)',
-      folderList.find((f) => f.id === feed.folderId)?.name || '',
-    );
-    let folderId: number | null = null;
-    if (folderName) {
-      const folder = await db.folders.where('name').equals(folderName).first();
-      if (!folder) {
-        folderId = await db.folders.add({ name: folderName });
-      } else if (folder.id != null) {
-        folderId = folder.id;
+  const loadFeeds = async () => {
+    try {
+      const allFeeds = await feedsRepo.all();
+      setFeeds(allFeeds);
+      
+      // Load articles for all feeds
+      const allArticles: Article[] = [];
+      for (const feed of allFeeds) {
+        const feedArticles = await articlesRepo.getByFeed(feed.id);
+        allArticles.push(...feedArticles);
       }
+      console.log('FeedListPage: Loaded', allArticles.length, 'total articles');
+      setArticles(allArticles);
+    } catch (error) {
+      console.error('Failed to load feeds:', error);
+      setFeeds([]);
+      setArticles([]);
     }
-    await db.feeds.update(feed.id!, { title, folderId });
+  };
+
+  useEffect(() => {
+    loadFeeds();
+  }, []);
+
+  const handleRefreshAll = async () => {
+    setRefreshing(true);
+    try {
+      await syncFeedsOnce();
+      await loadFeeds(); // Reload feeds after sync
+    } catch (error) {
+      console.error('Sync failed:', error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleDelete = async (feed: Feed) => {
     if (!window.confirm(`Delete ${feed.title}?`)) return;
-    await db.feeds.delete(feed.id!);
+    try {
+      await feedsRepo.remove(feed.id);
+      await loadFeeds(); // Reload feeds after deletion
+    } catch (error) {
+      console.error('Failed to delete feed:', error);
+    }
   };
 
-  const [fileKey, setFileKey] = useState(0);
-  const [refreshPulse, setRefreshPulse] = useState(0);
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const text = await file.text();
-    await importOpml(text);
-    setFileKey((k) => k + 1);
+  const handleEdit = async (feed: Feed) => {
+    const title = window.prompt('New title', feed.title);
+    if (title === null || !title.trim()) return;
+    
+    try {
+      await feedsRepo.update(feed.id, { title: title.trim() });
+      await loadFeeds(); // Reload feeds after update
+    } catch (error) {
+      console.error('Failed to update feed:', error);
+    }
   };
-
-  const handleExport = async () => {
-    const opml = await exportOpml();
-    const blob = new Blob([opml], { type: 'text/xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'feeds.opml';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleRefreshAll = async () => {
-    await syncFeedsOnce();
-    setRefreshPulse((p) => p + 1);
-  };
-
-  const MotionListItem = motion(ListItem);
-  const reduceMotion = useReducedMotion();
-  const itemVariants = reduceMotion
-    ? { hidden: { opacity: 0 }, visible: { opacity: 1 } }
-    : { hidden: { opacity: 0, y: -8 }, visible: { opacity: 1, y: 0 } };
 
   return (
     <Panel>
-      <AddFeedForm />
-      <div style={{ marginBottom: '1rem' }}>
-        <input
-          type="search"
-          ref={searchRef}
-          placeholder="Search articles"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <select
-          value={feedFilter === 'all' ? '' : feedFilter}
-          onChange={(e) =>
-            setFeedFilter(
-              e.target.value === '' ? 'all' : Number(e.target.value),
-            )
-          }
-        >
-          <option value="">All feeds</option>
-          {feeds.map((f) => (
-            <option key={f.id} value={f.id!}>
-              {f.title}
-            </option>
-          ))}
-        </select>
-        <select
-          value={folderFilter === 'all' ? '' : folderFilter}
-          onChange={(e) =>
-            setFolderFilter(
-              e.target.value === '' ? 'all' : Number(e.target.value),
-            )
-          }
-        >
-          <option value="">All folders</option>
-          {folderList.map((f) => (
-            <option key={f.id} value={f.id!}>
-              {f.name}
-            </option>
-          ))}
-        </select>
-        <label>
-          <input
-            type="checkbox"
-            checked={unreadOnly}
-            onChange={(e) => setUnreadOnly(e.target.checked)}
-          />
-          Unread only
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={hasImage}
-            onChange={(e) => setHasImage(e.target.checked)}
-          />
-          Has image
-        </label>
-      </div>
-      {articles && (
-        <ul>
-          {articles.map((a) => (
-            <li key={a.id}>
-              <Link to={`/reader/${a.id}`}>{a.title}</Link>
-            </li>
-          ))}
-        </ul>
-      )}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
+      <AddFeedForm onFeedAdded={loadFeeds} />
+      
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        margin: '1rem 0'
+      }}>
         <h1>Feeds</h1>
-        <IconButton
-          aria-label="Refresh feeds"
-          onClick={handleRefreshAll}
-          pulse={refreshPulse}
-        >
-          🔄
-        </IconButton>
-      </div>
-      {Array.from(grouped.entries()).map(([folderId, fs]) => (
-        <div key={folderId ?? 'root'}>
-          {folderId && (
-            <h2>{folderList.find((f) => f.id === folderId)?.name}</h2>
-          )}
-          <ul>
-            <AnimatePresence initial={!reduceMotion}>
-              {fs.map((f) => (
-                <MotionListItem
-                  key={f.id}
-                  variants={itemVariants}
-                  initial={reduceMotion ? false : 'hidden'}
-                  animate="visible"
-                  exit={reduceMotion ? undefined : 'hidden'}
-                  transition={{ duration: reduceMotion ? 0 : 0.15 }}
-                >
-                  {f.latestArticleId ? (
-                    <Link to={`/reader/${f.latestArticleId}`}>{f.title}</Link>
-                  ) : (
-                    f.title
-                  )}{' '}
-                  <span>({f.unread})</span>
-                  <Button onClick={() => handleEdit(f)}>Edit</Button>
-                  <Button onClick={() => handleDelete(f)}>Delete</Button>
-                </MotionListItem>
-              ))}
-            </AnimatePresence>
-          </ul>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <Button 
+            onClick={handleRefreshAll} 
+            disabled={refreshing}
+            aria-label="Refresh feeds"
+          >
+            {refreshing ? 'Syncing...' : '🔄'}
+          </Button>
+          <Button 
+            onClick={() => {
+              if (window.confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+                localStorage.removeItem('fictional-sniffle-db');
+                window.location.reload();
+              }
+            }}
+            style={{ backgroundColor: '#dc3545', color: 'white' }}
+          >
+            🗑️ Clear All Data
+          </Button>
         </div>
-      ))}
-      <div style={{ marginTop: '1rem' }}>
-        <Button onClick={handleExport}>Export OPML</Button>
-        <input
-          key={fileKey}
-          type="file"
-          accept=".opml,.xml"
-          onChange={handleImport}
-          style={{ display: 'block', marginTop: '0.5rem' }}
-        />
       </div>
+
+      {feeds.length === 0 ? (
+        <p>No feeds added yet. Add your first feed above!</p>
+      ) : (
+        <>
+          <ul>
+            {feeds.map((feed) => (
+              <li key={feed.id} style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                padding: '0.5rem 0',
+                borderBottom: '1px solid #eee'
+              }}>
+                <div>
+                  <Link to={`/feed/${feed.id}`} style={{ fontWeight: 'bold' }}>
+                    {feed.title}
+                  </Link>
+                  <div style={{ fontSize: '0.8em', color: '#666' }}>
+                    {feed.url}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <Button onClick={() => handleEdit(feed)}>Edit</Button>
+                  <Button onClick={() => handleDelete(feed)}>Delete</Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <h2>Articles ({articles.length})</h2>
+          {articles.length === 0 ? (
+            <p>No articles yet. Try syncing the feeds above.</p>
+          ) : (
+            <ul data-testid="articles-list">
+              {articles
+                .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+                .map((article) => (
+                <li key={article.id} data-testid="article-item" style={{
+                  padding: '1rem',
+                  borderBottom: '1px solid #eee',
+                  marginBottom: '0.5rem'
+                }}>
+                  <h3>
+                    <Link to={`/reader/${article.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                      {article.title}
+                    </Link>
+                  </h3>
+                  {article.mainImageUrl && (
+                    <img 
+                      src={article.mainImageUrl} 
+                      alt={article.mainImageAlt || "Article image"}
+                      style={{ maxWidth: '200px', height: 'auto', margin: '0.5rem 0' }}
+                    />
+                  )}
+                  <div style={{ fontSize: '0.8em', color: '#666' }}>
+                    {new Date(article.publishedAt).toLocaleDateString()} - 
+                    <a href={article.link} target="_blank" rel="noopener noreferrer">
+                      View Original
+                    </a>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
     </Panel>
   );
 }
