@@ -5,7 +5,7 @@ export const feedsRepo = {
   async add(feed: Omit<Feed, 'id'>): Promise<number> {
     console.log('feedsRepo.add: Adding feed:', feed);
     const normalizedUrl = normalizeUrl(feed.url);
-    
+
     // Check for duplicates
     const existing = await db.getFeedByUrl(normalizedUrl);
     if (existing) {
@@ -63,10 +63,17 @@ export const feedsRepo = {
 
 export const articlesRepo = {
   async add(article: Omit<Article, 'id' | 'titleLower'>): Promise<number> {
-    console.log('articlesRepo.add: Adding article:', article.title, 'has image:', !!article.mainImageUrl, 'has content:', !!article.contentHtml);
+    console.log(
+      'articlesRepo.add: Adding article:',
+      article.title,
+      'has image:',
+      !!article.mainImageUrl,
+      'has content:',
+      !!article.contentHtml,
+    );
     return await db.addArticle({
       ...article,
-      titleLower: article.title.toLowerCase()
+      titleLower: article.title.toLowerCase(),
     });
   },
 

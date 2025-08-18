@@ -57,7 +57,7 @@ class SimpleDB {
   private preferencesData: Preference[] = [];
   private folders: Folder[] = [];
   private syncLogs: SyncLog[] = [];
-  
+
   private nextFeedId = 1;
   private nextArticleId = 1;
   private nextFolderId = 1;
@@ -71,21 +71,23 @@ class SimpleDB {
 
   constructor() {
     this.load();
-    
+
     // Create interface for theme provider
     this.preferences = {
       get: (key: string) => this.getPreference(key),
-      put: ({ key, value }: { key: string; value: string }) => this.setPreference(key, value),
+      put: ({ key, value }: { key: string; value: string }) =>
+        this.setPreference(key, value),
     };
-    
+
     // Create interface for AddFeedForm
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (this as any).folders = {
       where: (_field: string) => ({
         equals: (value: string) => ({
-          first: async () => this.getFolderByName(value)
-        })
+          first: async () => this.getFolderByName(value),
+        }),
       }),
-      add: (folder: { name: string }) => this.addFolder(folder)
+      add: (folder: { name: string }) => this.addFolder(folder),
     };
   }
 
@@ -101,11 +103,23 @@ class SimpleDB {
         this.preferencesData = parsed.preferences || [];
         this.folders = parsed.folders || [];
         this.syncLogs = parsed.syncLogs || [];
-        
-        this.nextFeedId = this.feeds.length > 0 ? Math.max(...this.feeds.map(f => f.id)) + 1 : 1;
-        this.nextArticleId = this.articles.length > 0 ? Math.max(...this.articles.map(a => a.id)) + 1 : 1;
-        this.nextFolderId = this.folders.length > 0 ? Math.max(...this.folders.map(f => f.id)) + 1 : 1;
-        this.nextSyncLogId = this.syncLogs.length > 0 ? Math.max(...this.syncLogs.map(s => s.id)) + 1 : 1;
+
+        this.nextFeedId =
+          this.feeds.length > 0
+            ? Math.max(...this.feeds.map((f) => f.id)) + 1
+            : 1;
+        this.nextArticleId =
+          this.articles.length > 0
+            ? Math.max(...this.articles.map((a) => a.id)) + 1
+            : 1;
+        this.nextFolderId =
+          this.folders.length > 0
+            ? Math.max(...this.folders.map((f) => f.id)) + 1
+            : 1;
+        this.nextSyncLogId =
+          this.syncLogs.length > 0
+            ? Math.max(...this.syncLogs.map((s) => s.id)) + 1
+            : 1;
       }
     } catch (error) {
       console.error('Failed to load data:', error);
@@ -138,11 +152,11 @@ class SimpleDB {
   }
 
   async getFeed(id: number): Promise<Feed | undefined> {
-    return this.feeds.find(f => f.id === id);
+    return this.feeds.find((f) => f.id === id);
   }
 
   async getFeedByUrl(url: string): Promise<Feed | undefined> {
-    return this.feeds.find(f => f.url === url);
+    return this.feeds.find((f) => f.url === url);
   }
 
   async getAllFeeds(): Promise<Feed[]> {
@@ -150,7 +164,7 @@ class SimpleDB {
   }
 
   async updateFeed(id: number, changes: Partial<Feed>): Promise<void> {
-    const index = this.feeds.findIndex(f => f.id === id);
+    const index = this.feeds.findIndex((f) => f.id === id);
     if (index >= 0) {
       this.feeds[index] = { ...this.feeds[index], ...changes };
       this.save();
@@ -158,23 +172,25 @@ class SimpleDB {
   }
 
   async deleteFeed(id: number): Promise<void> {
-    this.feeds = this.feeds.filter(f => f.id !== id);
-    this.articles = this.articles.filter(a => a.feedId !== id);
+    this.feeds = this.feeds.filter((f) => f.id !== id);
+    this.articles = this.articles.filter((a) => a.feedId !== id);
     this.save();
   }
 
   // Article operations
   async addArticle(article: Omit<Article, 'id'>): Promise<number> {
     // Check if article already exists
-    const existing = this.articles.find(a => a.link === article.link && a.feedId === article.feedId);
+    const existing = this.articles.find(
+      (a) => a.link === article.link && a.feedId === article.feedId,
+    );
     if (existing) {
       return existing.id;
     }
 
-    const newArticle: Article = { 
-      ...article, 
+    const newArticle: Article = {
+      ...article,
       id: this.nextArticleId++,
-      titleLower: article.title.toLowerCase()
+      titleLower: article.title.toLowerCase(),
     };
     this.articles.push(newArticle);
     this.save();
@@ -182,24 +198,24 @@ class SimpleDB {
   }
 
   async getArticlesByFeed(feedId: number): Promise<Article[]> {
-    return this.articles.filter(a => a.feedId === feedId);
+    return this.articles.filter((a) => a.feedId === feedId);
   }
 
   async getArticle(id: number): Promise<Article | undefined> {
-    return this.articles.find(a => a.id === id);
+    return this.articles.find((a) => a.id === id);
   }
 
   async getAllArticles(): Promise<Article[]> {
     return [...this.articles];
   }
 
-  // Preference operations  
+  // Preference operations
   async getPreference(key: string): Promise<Preference | undefined> {
-    return this.preferencesData.find(p => p.key === key);
+    return this.preferencesData.find((p) => p.key === key);
   }
 
   async setPreference(key: string, value: string): Promise<void> {
-    const index = this.preferencesData.findIndex(p => p.key === key);
+    const index = this.preferencesData.findIndex((p) => p.key === key);
     if (index >= 0) {
       this.preferencesData[index].value = value;
     } else {
@@ -208,14 +224,13 @@ class SimpleDB {
     this.save();
   }
 
-
   // Setting operations
   async getSetting(key: string): Promise<Setting | undefined> {
-    return this.settings.find(s => s.key === key);
+    return this.settings.find((s) => s.key === key);
   }
 
   async setSetting(key: string, value: string): Promise<void> {
-    const index = this.settings.findIndex(s => s.key === key);
+    const index = this.settings.findIndex((s) => s.key === key);
     if (index >= 0) {
       this.settings[index].value = value;
     } else {
@@ -233,9 +248,8 @@ class SimpleDB {
   }
 
   async getFolderByName(name: string): Promise<Folder | undefined> {
-    return this.folders.find(f => f.name === name);
+    return this.folders.find((f) => f.name === name);
   }
-
 
   // Sync log operations
   async addSyncLog(log: Omit<SyncLog, 'id'>): Promise<number> {
@@ -254,12 +268,12 @@ class SimpleDB {
     this.preferencesData = [];
     this.folders = [];
     this.syncLogs = [];
-    
+
     this.nextFeedId = 1;
     this.nextArticleId = 1;
     this.nextFolderId = 1;
     this.nextSyncLogId = 1;
-    
+
     localStorage.removeItem('fictional-sniffle-db');
     console.log('Database cleared');
   }

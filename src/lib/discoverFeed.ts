@@ -19,14 +19,14 @@ export async function discoverFeeds(
 ): Promise<FeedDiscoveryResult> {
   const originalUrl = url;
   let usedProxy = false;
-  
+
   // First, try direct discovery
   try {
     const result = await discoverFeedsFromUrl(url);
     if (result.feeds.length > 0) {
       return { ...result, originalUrl, usedProxy };
     }
-  } catch (error) {
+  } catch {
     // If direct fails and we have a proxy, try with proxy
     if (proxy) {
       try {
@@ -47,11 +47,13 @@ export async function discoverFeeds(
   };
 }
 
-async function discoverFeedsFromUrl(url: string): Promise<{ feeds: DiscoveredFeed[] }> {
+async function discoverFeedsFromUrl(
+  url: string,
+): Promise<{ feeds: DiscoveredFeed[] }> {
   // Check if URL looks like a direct feed
   if (url.match(/\.(xml|rss|atom)(\?|$)/i)) {
     return {
-      feeds: [{ url: normalizeUrl(url), type: 'direct' }]
+      feeds: [{ url: normalizeUrl(url), type: 'direct' }],
     };
   }
 
@@ -61,28 +63,28 @@ async function discoverFeedsFromUrl(url: string): Promise<{ feeds: DiscoveredFee
   }
 
   const text = await response.text();
-  
+
   // Check if the response is actually a feed
   if (text.includes('<rss') || text.includes('<feed')) {
     const type = text.includes('<rss') ? 'rss' : 'atom';
     return {
-      feeds: [{ url: normalizeUrl(url), type }]
+      feeds: [{ url: normalizeUrl(url), type }],
     };
   }
 
   // Parse as HTML and look for feed links
   const doc = new DOMParser().parseFromString(text, 'text/html');
   const feedLinks = doc.querySelectorAll(
-    'link[rel="alternate"][type="application/rss+xml"], link[rel="alternate"][type="application/atom+xml"]'
+    'link[rel="alternate"][type="application/rss+xml"], link[rel="alternate"][type="application/atom+xml"]',
   );
 
   const feeds: DiscoveredFeed[] = [];
-  
+
   feedLinks.forEach((link) => {
     const href = link.getAttribute('href');
     const title = link.getAttribute('title');
     const type = link.getAttribute('type');
-    
+
     if (href) {
       try {
         const feedUrl = new URL(href, url).toString();

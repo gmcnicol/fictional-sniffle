@@ -75,12 +75,20 @@ describe('extractMainImage', () => {
 
 describe('buildProxyUrl', () => {
   it('should build proxy URL for query-style proxy', () => {
-    const result = buildProxyUrl('https://proxy.com/?url=', 'https://example.com/feed');
-    expect(result).toBe('https://proxy.com/?url=https%3A%2F%2Fexample.com%2Ffeed');
+    const result = buildProxyUrl(
+      'https://proxy.com/?url=',
+      'https://example.com/feed',
+    );
+    expect(result).toBe(
+      'https://proxy.com/?url=https%3A%2F%2Fexample.com%2Ffeed',
+    );
   });
 
   it('should build proxy URL for path-style proxy', () => {
-    const result = buildProxyUrl('https://proxy.com/', 'https://example.com/feed');
+    const result = buildProxyUrl(
+      'https://proxy.com/',
+      'https://example.com/feed',
+    );
     expect(result).toBe('https://proxy.com/https://example.com/feed');
   });
 });
@@ -101,11 +109,13 @@ describe('fetchFeed', () => {
 
   it('adds Accept and User-Agent headers', async () => {
     let received: Record<string, string> | null = null;
-    mockFetch.mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
-      const headers = new Headers(init?.headers);
-      received = Object.fromEntries(headers.entries());
-      return new Response('ok', { status: 200 });
-    });
+    mockFetch.mockImplementation(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const headers = new Headers(init?.headers);
+        received = Object.fromEntries(headers.entries());
+        return new Response('ok', { status: 200 });
+      },
+    );
 
     await fetchFeed('https://example.com/rss');
 
@@ -122,10 +132,10 @@ describe('fetchFeed', () => {
       new Response('feed content', {
         status: 200,
         headers: {
-          'etag': '"abc123"',
+          etag: '"abc123"',
           'last-modified': 'Wed, 21 Oct 2023 07:28:00 GMT',
         },
-      })
+      }),
     );
 
     const result = await fetchFeed('https://example.com/rss');
@@ -138,11 +148,13 @@ describe('fetchFeed', () => {
 
   it('sets conditional request headers', async () => {
     let requestHeaders: Record<string, string> | null = null;
-    mockFetch.mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
-      const headers = new Headers(init?.headers);
-      requestHeaders = Object.fromEntries(headers.entries());
-      return new Response('ok', { status: 200 });
-    });
+    mockFetch.mockImplementation(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const headers = new Headers(init?.headers);
+        requestHeaders = Object.fromEntries(headers.entries());
+        return new Response('ok', { status: 200 });
+      },
+    );
 
     await fetchFeed('https://example.com/rss', {
       etag: '"abc123"',
@@ -150,7 +162,9 @@ describe('fetchFeed', () => {
     });
 
     expect(requestHeaders?.['if-none-match']).toBe('"abc123"');
-    expect(requestHeaders?.['if-modified-since']).toBe('Wed, 21 Oct 2023 07:28:00 GMT');
+    expect(requestHeaders?.['if-modified-since']).toBe(
+      'Wed, 21 Oct 2023 07:28:00 GMT',
+    );
   });
 
   it('categorizes network errors appropriately', async () => {
@@ -169,8 +183,16 @@ describe('fetchFeed', () => {
     });
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
-    expect(mockFetch).toHaveBeenNthCalledWith(1, 'https://example.com/rss', expect.any(Object));
-    expect(mockFetch).toHaveBeenNthCalledWith(2, 'https://proxy.com/https://example.com/rss', expect.any(Object));
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      1,
+      'https://example.com/rss',
+      expect.any(Object),
+    );
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      2,
+      'https://proxy.com/https://example.com/rss',
+      expect.any(Object),
+    );
     expect(result.status).toBe(200);
   });
 
@@ -188,9 +210,7 @@ describe('fetchFeed', () => {
   });
 
   it('returns error information for 4xx responses', async () => {
-    mockFetch.mockResolvedValue(
-      new Response('Not Found', { status: 404 })
-    );
+    mockFetch.mockResolvedValue(new Response('Not Found', { status: 404 }));
 
     const result = await fetchFeed('https://example.com/rss');
 
@@ -210,7 +230,9 @@ describe('fetchFeed', () => {
     } catch (error: any) {
       expect(error.networkError).toBeDefined();
       expect(error.networkError.type).toBe('cors');
-      expect(error.networkError.message).toContain('Cross-origin request blocked');
+      expect(error.networkError.message).toContain(
+        'Cross-origin request blocked',
+      );
     }
   });
 
@@ -229,9 +251,7 @@ describe('fetchFeed', () => {
   });
 
   it('does not retry on non-retryable errors', async () => {
-    mockFetch.mockResolvedValue(
-      new Response('Forbidden', { status: 403 })
-    );
+    mockFetch.mockResolvedValue(new Response('Forbidden', { status: 403 }));
 
     const result = await fetchFeed('https://example.com/rss');
 
@@ -242,7 +262,7 @@ describe('fetchFeed', () => {
 
   it('applies jitter to retry delays', async () => {
     const mathRandomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    
+
     mockFetch.mockRejectedValue(new Error('Network error'));
 
     try {
@@ -251,7 +271,7 @@ describe('fetchFeed', () => {
     } catch {
       // Expected to fail
     }
-    
+
     mathRandomSpy.mockRestore();
   });
 });

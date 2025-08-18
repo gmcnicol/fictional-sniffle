@@ -2,6 +2,6 @@
 export function useAutoMarkAsRead() {
   return {
     threshold: 60,
-    setThreshold: () => {}
+    setThreshold: () => {},
   };
 }

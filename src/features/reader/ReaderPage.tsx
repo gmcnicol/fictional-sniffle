@@ -13,17 +13,17 @@ export function ReaderPage() {
   useEffect(() => {
     const loadArticle = async () => {
       if (!articleId) return;
-      
+
       try {
         console.log('ReaderPage: Loading article with ID:', articleId);
-        
+
         // Get article by ID
         const foundArticle = await articlesRepo.get(parseInt(articleId));
         console.log('ReaderPage: Found article:', foundArticle);
-        
+
         if (foundArticle) {
           setArticle(foundArticle);
-          
+
           // Load the feed
           const articleFeed = await feedsRepo.get(foundArticle.feedId);
           console.log('ReaderPage: Found feed:', articleFeed);
@@ -42,7 +42,11 @@ export function ReaderPage() {
   }, [articleId]);
 
   if (loading) {
-    return <Panel><p>Loading article...</p></Panel>;
+    return (
+      <Panel>
+        <p>Loading article...</p>
+      </Panel>
+    );
   }
 
   if (!article) {
@@ -60,32 +64,33 @@ export function ReaderPage() {
         <Link to="/">← Back to feeds</Link>
         {feed && <span> | {feed.title}</span>}
       </div>
-      
+
       <article>
         <h1>{article.title}</h1>
-        
-        {article.mainImageUrl && !article.contentHtml?.includes(article.mainImageUrl) && (
-          <div style={{ textAlign: 'center', margin: '1rem 0' }}>
-            <img 
-              src={article.mainImageUrl} 
-              alt={article.mainImageAlt || "Article image"}
-              style={{ maxWidth: '100%', height: 'auto' }}
-            />
-          </div>
-        )}
-        
+
+        {article.mainImageUrl &&
+          !article.contentHtml?.includes(article.mainImageUrl) && (
+            <div style={{ textAlign: 'center', margin: '1rem 0' }}>
+              <img
+                src={article.mainImageUrl}
+                alt={article.mainImageAlt || 'Article image'}
+                style={{ maxWidth: '100%', height: 'auto' }}
+              />
+            </div>
+          )}
+
         <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '1rem' }}>
           Published: {new Date(article.publishedAt).toLocaleDateString()} |{' '}
           <a href={article.link} target="_blank" rel="noopener noreferrer">
             View Original
           </a>
         </div>
-        
+
         {article.contentHtml ? (
-          <div 
-            style={{ 
+          <div
+            style={{
               textAlign: 'center',
-              marginTop: '1rem'
+              marginTop: '1rem',
             }}
           >
             <div dangerouslySetInnerHTML={{ __html: article.contentHtml }} />

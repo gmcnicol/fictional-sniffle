@@ -15,7 +15,7 @@ export function FeedListPage() {
     try {
       const allFeeds = await feedsRepo.all();
       setFeeds(allFeeds);
-      
+
       // Load articles for all feeds
       const allArticles: Article[] = [];
       for (const feed of allFeeds) {
@@ -60,7 +60,7 @@ export function FeedListPage() {
   const handleEdit = async (feed: Feed) => {
     const title = window.prompt('New title', feed.title);
     if (title === null || !title.trim()) return;
-    
+
     try {
       await feedsRepo.update(feed.id, { title: title.trim() });
       await loadFeeds(); // Reload feeds after update
@@ -72,25 +72,31 @@ export function FeedListPage() {
   return (
     <Panel>
       <AddFeedForm onFeedAdded={loadFeeds} />
-      
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        margin: '1rem 0'
-      }}>
+
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          margin: '1rem 0',
+        }}
+      >
         <h1>Feeds</h1>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <Button 
-            onClick={handleRefreshAll} 
+          <Button
+            onClick={handleRefreshAll}
             disabled={refreshing}
             aria-label="Refresh feeds"
           >
             {refreshing ? 'Syncing...' : '🔄'}
           </Button>
-          <Button 
+          <Button
             onClick={() => {
-              if (window.confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+              if (
+                window.confirm(
+                  'Are you sure you want to clear all data? This cannot be undone.',
+                )
+              ) {
                 localStorage.removeItem('fictional-sniffle-db');
                 window.location.reload();
               }
@@ -108,13 +114,16 @@ export function FeedListPage() {
         <>
           <ul>
             {feeds.map((feed) => (
-              <li key={feed.id} style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                padding: '0.5rem 0',
-                borderBottom: '1px solid #eee'
-              }}>
+              <li
+                key={feed.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '0.5rem 0',
+                  borderBottom: '1px solid #eee',
+                }}
+              >
                 <div>
                   <Link to={`/feed/${feed.id}`} style={{ fontWeight: 'bold' }}>
                     {feed.title}
@@ -137,33 +146,52 @@ export function FeedListPage() {
           ) : (
             <ul data-testid="articles-list">
               {articles
-                .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+                .sort(
+                  (a, b) =>
+                    new Date(b.publishedAt).getTime() -
+                    new Date(a.publishedAt).getTime(),
+                )
                 .map((article) => (
-                <li key={article.id} data-testid="article-item" style={{
-                  padding: '1rem',
-                  borderBottom: '1px solid #eee',
-                  marginBottom: '0.5rem'
-                }}>
-                  <h3>
-                    <Link to={`/reader/${article.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                      {article.title}
-                    </Link>
-                  </h3>
-                  {article.mainImageUrl && (
-                    <img 
-                      src={article.mainImageUrl} 
-                      alt={article.mainImageAlt || "Article image"}
-                      style={{ maxWidth: '200px', height: 'auto', margin: '0.5rem 0' }}
-                    />
-                  )}
-                  <div style={{ fontSize: '0.8em', color: '#666' }}>
-                    {new Date(article.publishedAt).toLocaleDateString()} - 
-                    <a href={article.link} target="_blank" rel="noopener noreferrer">
-                      View Original
-                    </a>
-                  </div>
-                </li>
-              ))}
+                  <li
+                    key={article.id}
+                    data-testid="article-item"
+                    style={{
+                      padding: '1rem',
+                      borderBottom: '1px solid #eee',
+                      marginBottom: '0.5rem',
+                    }}
+                  >
+                    <h3>
+                      <Link
+                        to={`/reader/${article.id}`}
+                        style={{ textDecoration: 'none', color: 'inherit' }}
+                      >
+                        {article.title}
+                      </Link>
+                    </h3>
+                    {article.mainImageUrl && (
+                      <img
+                        src={article.mainImageUrl}
+                        alt={article.mainImageAlt || 'Article image'}
+                        style={{
+                          maxWidth: '200px',
+                          height: 'auto',
+                          margin: '0.5rem 0',
+                        }}
+                      />
+                    )}
+                    <div style={{ fontSize: '0.8em', color: '#666' }}>
+                      {new Date(article.publishedAt).toLocaleDateString()} -
+                      <a
+                        href={article.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        View Original
+                      </a>
+                    </div>
+                  </li>
+                ))}
             </ul>
           )}
         </>

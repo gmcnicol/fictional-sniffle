@@ -13,7 +13,7 @@ describe('discoverFeeds', () => {
     const result = await discoverFeeds('https://example.com/feed.xml');
 
     expect(result.feeds).toEqual([
-      { url: 'https://example.com/feed.xml', type: 'direct' }
+      { url: 'https://example.com/feed.xml', type: 'direct' },
     ]);
     expect(result.usedProxy).toBe(false);
     expect(fetch).not.toHaveBeenCalled();
@@ -22,13 +22,14 @@ describe('discoverFeeds', () => {
   it('should recognize RSS feed content', async () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: true,
-      text: async () => '<?xml version="1.0"?><rss version="2.0"><channel></channel></rss>',
+      text: async () =>
+        '<?xml version="1.0"?><rss version="2.0"><channel></channel></rss>',
     } as Response);
 
     const result = await discoverFeeds('https://example.com/unknown');
 
     expect(result.feeds).toEqual([
-      { url: 'https://example.com/unknown', type: 'rss' }
+      { url: 'https://example.com/unknown', type: 'rss' },
     ]);
     expect(result.usedProxy).toBe(false);
   });
@@ -36,13 +37,14 @@ describe('discoverFeeds', () => {
   it('should recognize Atom feed content', async () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: true,
-      text: async () => '<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"></feed>',
+      text: async () =>
+        '<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"></feed>',
     } as Response);
 
     const result = await discoverFeeds('https://example.com/unknown');
 
     expect(result.feeds).toEqual([
-      { url: 'https://example.com/unknown', type: 'atom' }
+      { url: 'https://example.com/unknown', type: 'atom' },
     ]);
   });
 
@@ -67,12 +69,12 @@ describe('discoverFeeds', () => {
     expect(result.feeds[0]).toEqual({
       url: 'https://example.com/feed.xml',
       title: 'Main Feed',
-      type: 'rss'
+      type: 'rss',
     });
     expect(result.feeds[1]).toEqual({
       url: 'https://example.com/comments.atom',
       title: 'Comments',
-      type: 'atom'
+      type: 'atom',
     });
   });
 
@@ -94,7 +96,7 @@ describe('discoverFeeds', () => {
 
     expect(result.feeds).toEqual([
       { url: 'https://example.com/feed.xml', type: 'rss' },
-      { url: 'https://example.com/blog/atom.xml', type: 'atom' }
+      { url: 'https://example.com/blog/atom.xml', type: 'atom' },
     ]);
   });
 
@@ -108,7 +110,7 @@ describe('discoverFeeds', () => {
     const result = await discoverFeeds('https://example.com/notfound');
 
     expect(result.feeds).toEqual([
-      { url: 'https://example.com/notfound', type: 'direct' }
+      { url: 'https://example.com/notfound', type: 'direct' },
     ]);
     expect(result.usedProxy).toBe(false);
   });
@@ -121,7 +123,10 @@ describe('discoverFeeds', () => {
         text: async () => '<?xml version="1.0"?><rss></rss>',
       } as Response);
 
-    const result = await discoverFeeds('https://example.com', 'https://proxy.example.com/');
+    const result = await discoverFeeds(
+      'https://example.com',
+      'https://proxy.example.com/',
+    );
 
     expect(result.feeds[0].type).toBe('rss');
     expect(result.usedProxy).toBe(true);
@@ -146,7 +151,11 @@ describe('discoverFeeds', () => {
 
     // Should find the valid URL and also attempt to resolve the invalid one
     expect(result.feeds.length).toBeGreaterThan(0);
-    expect(result.feeds.some(feed => feed.url === 'http://valid.example.com/feed.xml')).toBe(true);
+    expect(
+      result.feeds.some(
+        (feed) => feed.url === 'http://valid.example.com/feed.xml',
+      ),
+    ).toBe(true);
   });
 
   it('should return original URL if no feeds found', async () => {
@@ -165,7 +174,7 @@ describe('discoverFeeds', () => {
     const result = await discoverFeeds('https://example.com/');
 
     expect(result.feeds).toEqual([
-      { url: 'https://example.com/', type: 'direct' }
+      { url: 'https://example.com/', type: 'direct' },
     ]);
   });
 
@@ -175,7 +184,7 @@ describe('discoverFeeds', () => {
     const result = await discoverFeeds('https://example.com/');
 
     expect(result.feeds).toEqual([
-      { url: 'https://example.com/', type: 'direct' }
+      { url: 'https://example.com/', type: 'direct' },
     ]);
     expect(result.usedProxy).toBe(false);
   });

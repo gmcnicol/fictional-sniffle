@@ -14,7 +14,7 @@ export function usePreference(key: string, defaultValue: string) {
         setValue(defaultValue);
       }
     };
-    
+
     loadValue();
   }, [key, defaultValue]);
 

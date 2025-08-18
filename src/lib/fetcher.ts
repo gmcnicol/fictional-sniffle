@@ -44,14 +44,14 @@ function categorizeError(
     if (error.name === 'TypeError' && error.message.includes('fetch')) {
       return {
         type: 'cors',
-        message: usedProxy 
+        message: usedProxy
           ? 'CORS error persists even with proxy - the feed may block all cross-origin requests'
           : 'Cross-origin request blocked - will try with proxy if available',
         usedProxy,
         canRetry: !usedProxy,
       };
     }
-    
+
     // Timeout errors
     if (error.name === 'AbortError') {
       return {
@@ -61,9 +61,12 @@ function categorizeError(
         canRetry: true,
       };
     }
-    
+
     // Network errors
-    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+    if (
+      error.message.includes('Failed to fetch') ||
+      error.message.includes('NetworkError')
+    ) {
       return {
         type: 'network',
         message: usedProxy
@@ -74,7 +77,7 @@ function categorizeError(
       };
     }
   }
-  
+
   // HTTP status errors
   if (status) {
     if (status === 429) {
@@ -86,7 +89,7 @@ function categorizeError(
         canRetry: true,
       };
     }
-    
+
     if (status >= 500) {
       return {
         type: 'server',
@@ -96,7 +99,7 @@ function categorizeError(
         canRetry: true,
       };
     }
-    
+
     if (status >= 400) {
       return {
         type: 'client',
@@ -107,7 +110,7 @@ function categorizeError(
       };
     }
   }
-  
+
   // Fallback
   return {
     type: 'network',
@@ -162,45 +165,48 @@ export async function fetchFeed(
   while (attempt < retries) {
     const target = useProxy && proxy ? buildProxyUrl(proxy, url) : url;
     const { controller, timeoutId } = createTimeoutController(timeout);
-    
+
     try {
-      const res = await fetch(target, { 
-        headers, 
-        signal: controller.signal 
+      const res = await fetch(target, {
+        headers,
+        signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       // Handle rate limiting with longer delay
       if (res.status === 429) {
         const retryAfter = res.headers.get('Retry-After');
         const delayMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 60000; // Default 1 minute
-        
+
         if (attempt < retries - 1) {
           attempt++;
           await delay(Math.min(delayMs, 300000)); // Cap at 5 minutes
           continue;
         }
       }
-      
+
       // Retry on server errors with exponential backoff
       if (res.status >= 500 && attempt < retries - 1) {
         attempt++;
         await delay(2 ** attempt * 1000); // More aggressive backoff for server errors
         continue;
       }
-      
+
       if (res.status === 304) {
         return { status: 304 };
       }
-      
+
       const text = await res.text();
-      
+
       // Return error information for 4xx/5xx responses
       if (res.status >= 400) {
         const networkError = categorizeError(null, res.status, useProxy);
-        console.warn(`fetchFeed ${target} responded ${res.status}:`, networkError.message);
-        
+        console.warn(
+          `fetchFeed ${target} responded ${res.status}:`,
+          networkError.message,
+        );
+
         return {
           status: res.status,
           etag: res.headers.get('etag') ?? undefined,
@@ -209,28 +215,34 @@ export async function fetchFeed(
           networkError,
         };
       }
-      
+
       return {
         status: res.status,
         etag: res.headers.get('etag') ?? undefined,
         lastModified: res.headers.get('last-modified') ?? undefined,
         text,
       };
-      
     } catch (err) {
       clearTimeout(timeoutId);
       const networkError = categorizeError(err, undefined, useProxy);
       lastError = networkError;
-      
-      console.warn(`fetchFeed attempt ${attempt + 1} failed:`, networkError.message);
-      
+
+      console.warn(
+        `fetchFeed attempt ${attempt + 1} failed:`,
+        networkError.message,
+      );
+
       // Try proxy if we haven't yet and error suggests it might help
-      if (!useProxy && proxy && networkError.canRetry && 
-          (networkError.type === 'cors' || networkError.type === 'network')) {
+      if (
+        !useProxy &&
+        proxy &&
+        networkError.canRetry &&
+        (networkError.type === 'cors' || networkError.type === 'network')
+      ) {
         useProxy = true;
         continue; // Don't increment attempt counter for proxy retry
       }
-      
+
       // Only retry if the error type suggests it might help
       if (networkError.canRetry && attempt < retries - 1) {
         attempt++;
@@ -240,14 +252,14 @@ export async function fetchFeed(
         await delay(baseDelay + jitter);
         continue;
       }
-      
+
       break;
     }
   }
-  
+
   // Throw enriched error with context
   const error = new Error(
-    lastError?.message || 'Failed to fetch after all retries'
+    lastError?.message || 'Failed to fetch after all retries',
   );
   (error as any).networkError = lastError;
   throw error;

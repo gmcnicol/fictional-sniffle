@@ -22,7 +22,7 @@ const parser = new XMLParser({
 // Extract main image from HTML content
 function extractMainImage(html: string): string | undefined {
   if (!html) return undefined;
-  
+
   // Look for img tags in the HTML
   const imgMatch = html.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
   return imgMatch ? imgMatch[1] : undefined;
@@ -42,7 +42,7 @@ export function parseFeedWithMetadata(xml: string): ParsedFeed {
   if (json.rss && json.rss.channel) {
     title = json.rss.channel.title;
     description = json.rss.channel.description;
-    
+
     const rssItems = Array.isArray(json.rss.channel.item)
       ? json.rss.channel.item
       : json.rss.channel.item
@@ -50,17 +50,17 @@ export function parseFeedWithMetadata(xml: string): ParsedFeed {
         : [];
     for (const item of rssItems) {
       const contentHtml = item.description || item['content:encoded'] || '';
-      
+
       // Try multiple ways to get the image
       let image = item.enclosure?.type?.startsWith('image')
         ? item.enclosure.url
         : item['media:content']?.url;
-      
+
       // If no direct image, extract from content HTML
       if (!image && contentHtml) {
         image = extractMainImage(contentHtml);
       }
-      
+
       items.push({
         title: item.title ?? '',
         link: item.link ?? '',
@@ -75,7 +75,7 @@ export function parseFeedWithMetadata(xml: string): ParsedFeed {
   if (json.feed) {
     title = json.feed.title;
     description = json.feed.subtitle || json.feed.description;
-    
+
     const entries = Array.isArray(json.feed.entry)
       ? json.feed.entry
       : json.feed.entry
@@ -85,17 +85,17 @@ export function parseFeedWithMetadata(xml: string): ParsedFeed {
       const link =
         typeof entry.link === 'string' ? entry.link : entry.link?.href;
       const contentHtml = entry.content || entry.summary || '';
-      
+
       // Try multiple ways to get the image
       let image = entry.enclosure?.type?.startsWith('image')
         ? entry.enclosure.url
         : entry['media:content']?.url;
-      
+
       // If no direct image, extract from content HTML
       if (!image && contentHtml) {
         image = extractMainImage(contentHtml);
       }
-      
+
       items.push({
         title: entry.title ?? '',
         link: link ?? '',
@@ -115,7 +115,7 @@ export function parseFeedWithMetadata(xml: string): ParsedFeed {
     const channel = json['rdf:RDF'].channel;
     title = channel?.title;
     description = channel?.description;
-    
+
     const rdfItems = Array.isArray(json['rdf:RDF'].item)
       ? json['rdf:RDF'].item
       : json['rdf:RDF'].item
@@ -123,17 +123,17 @@ export function parseFeedWithMetadata(xml: string): ParsedFeed {
         : [];
     for (const item of rdfItems) {
       const contentHtml = item.description || '';
-      
+
       // Try multiple ways to get the image
       let image = item.enclosure?.type?.startsWith('image')
         ? item.enclosure.url
         : item['media:content']?.url;
-      
+
       // If no direct image, extract from content HTML
       if (!image && contentHtml) {
         image = extractMainImage(contentHtml);
       }
-      
+
       items.push({
         title: item.title ?? '',
         link: item.link ?? '',

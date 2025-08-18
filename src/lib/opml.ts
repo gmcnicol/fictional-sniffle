@@ -19,17 +19,26 @@ export interface OpmlImportResult {
   errors: OpmlValidationError[];
 }
 
-export function parseOpml(_opml: string): { feeds: ParsedFeed[]; errors: OpmlValidationError[] } {
+export function parseOpml(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _opml: string,
+): {
+  feeds: ParsedFeed[];
+  errors: OpmlValidationError[];
+} {
   return { feeds: [], errors: [] }; // Stub
 }
 
-export async function importOpml(_opml: string): Promise<OpmlImportResult> {
+export async function importOpml(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _opml: string,
+): Promise<OpmlImportResult> {
   return { imported: 0, skipped: 0, errors: [] }; // Stub
 }
 
 export async function exportOpml(): Promise<string> {
   const feeds = await db.getAllFeeds();
-  
+
   let opml = `<?xml version="1.0" encoding="UTF-8"?>
 <opml version="1.0">
   <head>

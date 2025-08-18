@@ -6,7 +6,9 @@ export interface ExtractedArticleContent {
 }
 
 export async function extractArticleContent(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _url: string,
 ): Promise<ExtractedArticleContent> {
-  return {}; // Stub
+  // Stub implementation
+  return {};
 }

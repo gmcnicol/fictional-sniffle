@@ -34,7 +34,7 @@ function App() {
   useEffect(() => {
     // Start automatic feed syncing when the app initializes
     console.log('Starting scheduled sync...');
-    scheduleSync().catch(error => {
+    scheduleSync().catch((error) => {
       console.error('Failed to start sync:', error);
     });
   }, []);

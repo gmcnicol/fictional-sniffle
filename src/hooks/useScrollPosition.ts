@@ -2,6 +2,6 @@
 export function useScrollPosition() {
   return {
     scrollPosition: 0,
-    saveScrollPosition: () => {}
+    saveScrollPosition: () => {},
   };
 }
